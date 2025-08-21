@@ -405,105 +405,37 @@
     })();
   })();
 
-  /* ================= IMAGES: strict folders + case-tolerant extensions ================= */
-/* ================= IMAGES: stop after 2 consecutive misses ================= */
-(function(){
-  var IMG_DIR   = "Media/images";
-  var THUMB_DIR = "Media/images/thumbs";
-  var EXTENSIONS  = ["jpg","jpeg","JPG","JPEG"]; // case tolerant
-  var PAGE_SIZE   = 6;
-  var INITIAL_MAX = 40;
+ /* ================= IMAGES (from List file) ================= */
+(async function() {
+  const galleryEl = document.getElementById('gallery');
+  const toggleBtn = document.getElementById('toggleImages');
+  const PAGE_SIZE = 6;
+  let allImages = [];
+  let expanded = false;
 
-  var galleryEl = document.getElementById('gallery');
-  var toggleBtn = document.getElementById('toggleImages');
-  var imagesExpanded = false;
-
-  var imageList = [];     // {thumb, full}
-  var scannedTo = 0;      // highest index we tried
-  var missesInARow = 0;   // consecutive misses after the last success
-  var imagesExhausted = false; // once true, we never scan again
-
-  function probeImage(url){
-    return new Promise(function(res){
-      var im = new Image();
-      im.onload = function(){ res(true); };
-      im.onerror = function(){ res(false); };
-      im.src = url;
-    });
+  async function loadList() {
+    const res = await fetch("Media/images/List");
+    const text = await res.text();
+    return text.split(/\r?\n/).map(f => f.trim()).filter(f => f.length > 0);
   }
 
-  async function resolveForIndex(i){
-    var n2 = String(i).padStart(2,'0');
-    for (var e=0; e<EXTENSIONS.length; e++){
-      var ext = EXTENSIONS[e];
-
-      var fullPad = IMG_DIR + "/" + n2 + "." + ext;
-      var fullNum = IMG_DIR + "/" + i   + "." + ext;
-
-      // 01.jpg takes priority, then 1.jpg
-      // eslint-disable-next-line no-await-in-loop
-      if (await probeImage(fullPad)){
-        var thPad = THUMB_DIR + "/" + n2 + "." + ext;
-        var thNum = THUMB_DIR + "/" + i   + "." + ext;
-        // eslint-disable-next-line no-await-in-loop
-        if (await probeImage(thPad)) return { thumb: thPad, full: fullPad };
-        // eslint-disable-next-line no-await-in-loop
-        if (await probeImage(thNum)) return { thumb: thNum, full: fullPad };
-        return { thumb: fullPad, full: fullPad };
-      }
-      // eslint-disable-next-line no-await-in-loop
-      if (await probeImage(fullNum)){
-        var thNum2 = THUMB_DIR + "/" + i   + "." + ext;
-        var thPad2 = THUMB_DIR + "/" + n2 + "." + ext;
-        // eslint-disable-next-line no-await-in-loop
-        if (await probeImage(thNum2)) return { thumb: thNum2, full: fullNum };
-        // eslint-disable-next-line no-await-in-loop
-        if (await probeImage(thPad2)) return { thumb: thPad2, full: fullNum };
-        return { thumb: fullNum, full: fullNum };
-      }
-    }
-    return null;
-  }
-
-  async function discoverBatch(limit){
-    if (imagesExhausted) return;
-    while (scannedTo < limit){
-      scannedTo++;
-      // eslint-disable-next-line no-await-in-loop
-      var entry = await resolveForIndex(scannedTo);
-      if (entry){
-        imageList.push(entry);
-        missesInARow = 0; // reset on success
-      } else {
-        missesInARow++;
-        if (missesInARow >= 2){ // <- hard stop after two consecutive misses
-          imagesExhausted = true;
-          break;
-        }
-      }
-    }
-  }
-
-  function makeCard(entry, idx){
-    var btn = document.createElement('button');
+  function makeCard(file, idx) {
+    const btn = document.createElement('button');
     btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
     btn.setAttribute('data-index', idx);
 
-    var img = document.createElement('img');
-    img.src = entry.thumb;
+    const img = document.createElement('img');
+    img.src = "Media/images/thumbs/" + file; // if you have thumbs
+    img.onerror = function(){ img.src = "Media/images/" + file; }; // fallback to full
     img.loading = "lazy";
-    img.decoding = "async";
-    img.fetchPriority = "low";
-    img.alt = "";
     img.className = "thumb h-full w-full object-cover";
-    img.onerror = function(){ btn.remove(); };
 
-    var glow = document.createElement('div');
+    const glow = document.createElement('div');
     glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
 
-    var badge = document.createElement('div');
+    const badge = document.createElement('div');
     badge.className = "pointer-events-none absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition";
-    var badgeSpan = document.createElement('span');
+    const badgeSpan = document.createElement('span');
     badgeSpan.className = "rounded-full border border-white/30 bg-black/30 backdrop-blur px-2 py-0.5 text-xs";
     badgeSpan.textContent = "View";
     badge.appendChild(badgeSpan);
@@ -515,71 +447,57 @@
     return btn;
   }
 
-  function render(){
+  function render() {
     galleryEl.innerHTML = "";
-    var total = imageList.length;
-    var toShow = imagesExpanded ? total : Math.min(PAGE_SIZE, total);
-    for (var i=0; i<toShow; i++){
-      galleryEl.appendChild(makeCard(imageList[i], i));
+    const toShow = expanded ? allImages.length : Math.min(PAGE_SIZE, allImages.length);
+    for (let i = 0; i < toShow; i++) {
+      galleryEl.appendChild(makeCard(allImages[i], i));
     }
-    toggleBtn.textContent = imagesExpanded ? "Show less" : "Show more";
-
-    // Hide actions if (a) everything fits on one page OR (b) we’ve exhausted and are already expanded
-    var hideActions = total <= PAGE_SIZE || (imagesExhausted && imagesExpanded);
-    document.getElementById('galleryActions').classList.toggle('hidden', hideActions);
+    toggleBtn.textContent = expanded ? "Show less" : "Show more";
+    document.getElementById('galleryActions').classList.toggle('hidden', allImages.length <= PAGE_SIZE);
   }
 
-  // Lightbox
-  var lb = document.getElementById('lightbox');
-  var lbImg = document.getElementById('lbImg');
-  var lbClose = document.getElementById('lbClose');
-  var lbPrev = document.getElementById('lbPrev');
-  var lbNext = document.getElementById('lbNext');
-  var current = 0;
+  // Lightbox (reuse your existing code)
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lbImg');
+  const lbClose = document.getElementById('lbClose');
+  const lbPrev = document.getElementById('lbPrev');
+  const lbNext = document.getElementById('lbNext');
+  let current = 0;
 
-  function openLightbox(e){
+  function openLightbox(e) {
     current = parseInt(e.currentTarget.getAttribute('data-index'), 10) || 0;
-    lbImg.src = imageList[current].full;
+    lbImg.src = "Media/images/" + allImages[current];
     lb.classList.remove('hidden');
-    lb.setAttribute('aria-hidden','false');
     document.body.style.overflow = "hidden";
   }
-  function closeLightbox(){
-    lb.classList.add('hidden');
-    lb.setAttribute('aria-hidden','true');
-    document.body.style.overflow = "";
-  }
+  function closeLightbox(){ lb.classList.add('hidden'); document.body.style.overflow = ""; }
   function show(delta){
-    current = (current + delta + imageList.length) % imageList.length;
-    lbImg.src = imageList[current].full;
+    current = (current + delta + allImages.length) % allImages.length;
+    lbImg.src = "Media/images/" + allImages[current];
   }
   lbClose.addEventListener('click', closeLightbox);
-  lb.addEventListener('click', function(e){ if(e.target === lb || e.target.classList.contains('bg-black/90')) closeLightbox(); });
-  lbPrev.addEventListener('click', function(){ show(-1); });
-  lbNext.addEventListener('click', function(){ show(1); });
-  window.addEventListener('keydown', function(e){
+  lbPrev.addEventListener('click', ()=>show(-1));
+  lbNext.addEventListener('click', ()=>show(1));
+  window.addEventListener('keydown', e=>{
     if (lb.classList.contains('hidden')) return;
     if (e.key === 'Escape') closeLightbox();
     if (e.key === 'ArrowLeft') show(-1);
     if (e.key === 'ArrowRight') show(1);
   });
 
-  toggleBtn.addEventListener('click', async function(){
-    imagesExpanded = !imagesExpanded;
-    if (imagesExpanded && !imagesExhausted){
-      await discoverBatch(scannedTo + 80);
-    }
+  toggleBtn.addEventListener('click', function(){
+    expanded = !expanded;
     render();
   });
 
-  (async function init(){
-    await discoverBatch(INITIAL_MAX);
-    if (!imageList.length){
-      document.getElementById('portfolio').classList.add('hidden');
-      return;
-    }
-    render();
-  })();
+  // Init
+  allImages = await loadList();
+  if (!allImages.length) {
+    document.getElementById('portfolio').classList.add('hidden');
+    return;
+  }
+  render();
 })();
 
   /* ================= VIDEOS: stop after 2 consecutive misses ================= */
