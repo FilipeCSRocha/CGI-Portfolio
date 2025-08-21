@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Filipe Rocha — CGI Portfolio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html{scroll-behavior:smooth}
+    body{background:#0a0f12;color:#fff;margin:0}
+    ::-webkit-scrollbar{width:12px;height:12px}
+    ::-webkit-scrollbar-track{background:rgba(255,255,255,.03)}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:8px}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.25)}
+    *{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) rgba(255,255,255,.05)}
+    #fx{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:0}
+    .btn{border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); padding:.5rem 1rem; border-radius:.75rem}
+    .btn:hover{background:rgba(255,255,255,.12)}
+    .thumb{ filter:grayscale(80%); transition:transform .5s ease, filter .35s ease, opacity .35s ease; }
+    .group:hover .thumb{ filter:grayscale(30%); transform:scale(1.04); }
+  </style>
+</head>
+<body class="min-h-screen selection:bg-cyan-300/20">
+  <canvas id="fx"></canvas>
+
+  <!-- HERO -->
+  <section class="relative z-10 h-[90svh] overflow-hidden">
+    <video id="heroVideo" class="absolute inset-0 h-full w-full object-cover opacity-55" src="https://cdn.coverr.co/videos/coverr-modern-interior-8050/1080p.mp4" autoplay muted playsinline loop style="z-index:0"></video>
+    <div class="relative z-10 flex h-full items-center justify-center">
+      <div class="mx-4 w-full max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-10 text-center backdrop-blur-xl shadow-[0_0_80px_rgba(0,0,0,0.45)]">
+        <h1 class="text-4xl md:text-6xl font-semibold tracking-tight">Filipe Rocha</h1>
+        <p class="mt-3 text-lg md:text-xl text-white/80">CGI Artist</p>
+        <div class="mt-8 flex items-center justify-center gap-3">
+          <a href="#portfolio" class="rounded-xl bg-cyan-400/20 px-5 py-2.5 text-base border border-cyan-300/30 hover:bg-cyan-300/30">View My Work</a>
+          <a href="#contact" class="rounded-xl bg-white/5 px-5 py-2.5 text-base border border-white/10 hover:bg-white/10">Contact</a>
+        </div>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60"></div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
+    <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">About Me</h2>
+    <div class="grid gap-8 md:grid-cols-[1fr_1.6fr] items-start">
+      <div class="flex justify-center">
+        <div class="relative w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(160,240,255,0.25)]">
+          <img src="Media/images/Profile.jpg" alt="Filipe Rocha" class="h-full w-full object-cover" />
+        </div>
+      </div>
+      <div class="space-y-8">
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-6 leading-relaxed text-white/85 backdrop-blur">
+          I’m a CGI artist experienced in design and architectural visualization for marketing.
+          I deliver photo-real stills and animations, covering modeling, materials, lighting, rendering, compositing and editing.
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+          <h3 class="mb-4 font-medium text-white/90">Tools</h3>
+          <div id="toolIcons" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3"></div>
+          <p id="toolHint" class="mt-3 text-xs text-white/50 hidden">Place icons as <code>Media/icons/1.svg</code>, <code>2.png</code>, <code>3.webp</code>, etc. Mixed formats allowed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTFOLIO -->
+  <section id="portfolio" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
+    <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Portfolio</h2>
+    <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    <div id="galleryActions" class="mt-8 flex justify-center">
+      <button id="toggleImages" class="btn">Show more</button>
+    </div>
+  </section>
+
+  <!-- VIDEOS -->
+  <section id="videos" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
+    <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Videos</h2>
+    <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    <div id="videoActions" class="mt-8 flex justify-center">
+      <button id="toggleVideos" class="btn">Show more</button>
+    </div>
+    <div id="vidLightbox" class="fixed inset-0 z-[9999] hidden">
+      <div class="absolute inset-0 bg-black/90"></div>
+      <div class="relative h-full w-full flex items-center justify-center p-4">
+        <button id="vlbClose" class="absolute top-4 right-4 btn">✕ Close</button>
+        <button id="vlbPrev" class="absolute left-4 top-1/2 -translate-y-1/2 btn">⟵ Prev</button>
+        <button id="vlbNext" class="absolute right-4 top-1/2 -translate-y-1/2 btn">Next ⟶</button>
+        <video id="vlbVideo" src="" class="block max-w-[92vw] max-h-[90vh] rounded-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]" controls playsinline></video>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESUME -->
+  <section id="resume" class="relative z-10 mx-auto max-w-6xl px-6 pb-24">
+    <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Resume</h2>
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+      <ul class="space-y-5">
+        <li class="grid gap-2 md:grid-cols-[1.2fr_1fr]">
+          <div>
+            <div class="text-white/95 font-medium">CGI Artist</div>
+            <div class="text-white/70 text-sm">Trident Marketing Anglia Ltd · Ipswich, UK</div>
+          </div>
+          <div class="text-white/60 text-sm md:text-right">Feb 2022 – Present</div>
+        </li>
+        <li class="grid gap-2 md:grid-cols-[1.2fr_1fr]">
+          <div>
+            <div class="text-white/95 font-medium">3D Visualiser (Freelance)</div>
+            <div class="text-white/70 text-sm">London, UK</div>
+          </div>
+          <div class="text-white/60 text-sm md:text-right">Jul 2020 – Feb 2022</div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <footer id="contact" class="relative z-10 border-t border-white/10 bg-white/5">
+    <div class="mx-auto max-w-6xl px-6 py-12">
+      <div class="grid gap-4 md:grid-cols-2 items-center">
+        <div>
+          <h3 class="text-xl font-semibold">Let’s work together</h3>
+          <p class="text-white/70">Available for freelance and collaboration.</p>
+        </div>
+        <div class="flex justify-start md:justify-end gap-3">
+          <a class="btn" href="mailto:hello@example.com">Email</a>
+          <a class="btn" href="https://www.linkedin.com/in/filipecsrocha/" target="_blank" rel="noreferrer">LinkedIn</a>
+          <a class="btn" href="#">ArtStation</a>
+          <a class="btn" href="#">Vimeo</a>
+        </div>
+      </div>
+      <p class="mt-6 text-xs text-white/50">© <span id="year"></span> Filipe Rocha. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- IMAGE LIGHTBOX (top-most) -->
+  <div id="lightbox" class="fixed inset-0 hidden" style="z-index:2147483647;">
+    <div class="absolute inset-0 bg-black/90"></div>
+    <div class="relative h-full w-full flex items-center justify-center p-4">
+      <button id="lbClose" class="absolute top-4 right-4 btn">✕ Close</button>
+      <button id="lbPrev" class="absolute left-4 top-1/2 -translate-y-1/2 btn">⟵ Prev</button>
+      <button id="lbNext" class="absolute right-4 top-1/2 -translate-y-1/2 btn">Next ⟶</button>
+      <img id="lbImg" src="" alt="" class="block max-w-[92vw] max-h-[90vh] object-contain rounded-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]" />
+    </div>
+  </div>
+
+<script>
+  // Year
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // ===== Background particles (unchanged) =====
+  const canvas = document.getElementById('fx'), ctx = canvas.getContext('2d'), DPR=window.devicePixelRatio||1;
+  const PARTICLE_RADIUS=6, COUNT=12, BASE_RADIUS=220, STIFFNESS=15, DAMPING=0.88, SWIRL=2, LINK_DIST=190, GRID_ALPHA=0.055, GRID_SPACING=96, NOISE=180, SPAWN_MODE='edges', CLICK_IMPULSE=1200;
+  const anchor={x:innerWidth*0.5,y:innerHeight*0.45}, mouse={x:anchor.x,y:anchor.y,active:false}, pts=[], state={scatter:0.2};
+  const glow=document.createElement('canvas'); (function(){const r=PARTICLE_RADIUS; glow.width=glow.height=r*DPR*2; const g=glow.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0); const grd=g.createRadialGradient(r,r,0,r,r,r); grd.addColorStop(0,'rgba(160,240,255,0.95)'); grd.addColorStop(1,'rgba(160,240,255,0)'); g.fillStyle=grd; g.beginPath(); g.arc(r,r,r,0,Math.PI*2); g.fill();})();
+  function size(){canvas.width=Math.max(1,Math.floor(innerWidth))*DPR; canvas.height=Math.max(1,Math.floor(innerHeight))*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);}
+  function spawn(){const cw=Math.max(1,Math.floor(innerWidth)), ch=Math.max(1,Math.floor(innerHeight)); pts.length=0; for(let i=0;i<COUNT;i++){let sx,sy; if(SPAWN_MODE==='center'){sx=anchor.x; sy=anchor.y;} else {const e=Math.floor(Math.random()*4); if(e===0){sx=-20;sy=Math.random()*ch;} if(e===1){sx=cw+20;sy=Math.random()*ch;} if(e===2){sx=Math.random()*cw;sy=-20;} if(e===3){sx=Math.random()*cw;sy=ch+20;}} const a=Math.random()*Math.PI*2; const r=(0.4+Math.random()*0.6)*BASE_RADIUS; const toAx=anchor.x-sx,toAy=anchor.y-sy; const dist=Math.hypot(toAx,toAy)||1; const iv=180+Math.random()*180; pts.push({x:sx,y:sy,vx:(toAx/dist)*iv,vy:(toAy/dist)*iv,homeA:a,homeR:r,swirl:(0.3+Math.random()*0.7)*SWIRL});}}
+  function onMove(e){mouse.x=e.clientX; mouse.y=e.clientY; mouse.active=true;} function onLeave(){mouse.active=false;}
+  function onClick(e){const cx=e.clientX,cy=e.clientY; state.scatter=Math.min(1.5,state.scatter+1.0); for(const p of pts){const dx=p.x-cx, dy=p.y-cy, d=Math.hypot(dx,dy)+0.001, uX=dx/d, uY=dy/d, impulse=CLICK_IMPULSE*(0.6+0.4*Math.random()); p.vx+=uX*impulse; p.vy+=uY*impulse;}}
+  const footerEl=document.getElementById('contact'); function getFade(){if(!footerEl) return 1; const rect=footerEl.getBoundingClientRect(); const vh=innerHeight||document.documentElement.clientHeight; const start=vh, end=vh*0.4; if(rect.top>=start) return 1; if(rect.top<=end) return 0; return (rect.top-end)/(start-end);}
+  let last=performance.now(); function loop(now){const dt=Math.min(0.05,(now-last)/1000); last=now; const cw=Math.max(1,Math.floor(innerWidth)), ch=Math.max(1,Math.floor(innerHeight)); const k=12; const tx=mouse.active?mouse.x:anchor.x, ty=mouse.active?mouse.y:anchor.y; anchor.x+=(tx-anchor.x)*Math.min(1,k*dt); anchor.y+=(ty-anchor.y)*Math.min(1,k*dt); if(state.scatter>0) state.scatter=Math.max(0,state.scatter-1.2*dt); ctx.clearRect(0,0,cw,ch); const fade=getFade(); ctx.save(); ctx.globalAlpha=fade; ctx.save(); ctx.globalAlpha*=GRID_ALPHA; ctx.lineWidth=1; ctx.strokeStyle='#7fd0ff'; const ox=((anchor.x/cw)-0.5)*8, oy=((anchor.y/ch)-0.5)*8; for(let x=(ox%GRID_SPACING)-GRID_SPACING; x<cw+GRID_SPACING; x+=GRID_SPACING){ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,ch); ctx.stroke();} for(let y=(oy%GRID_SPACING)-GRID_SPACING; y<ch+GRID_SPACING; y+=GRID_SPACING){ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(cw,y); ctx.stroke();} ctx.restore(); const damping=Math.pow(DAMPING,dt*60); for(const p of pts){p.homeA+=p.swirl*0.3*dt; const targetR=p.homeR*(1+state.scatter*1.4); const px=anchor.x+Math.cos(p.homeA)*targetR; const py=anchor.y+Math.sin(p.homeA)*targetR; const ax=(px-p.x)*STIFFNESS+(Math.random()-0.5)*NOISE*dt; const ay=(py-p.y)*STIFFNESS+(Math.random()-0.5)*NOISE*dt; p.vx=(p.vx+ax*dt)*damping; p.vy=(p.vy+ay*dt)*damping; p.x+=p.vx*dt; p.y+=p.vy*dt;} for(let i=0;i<pts.length;i++){const p=pts[i]; ctx.drawImage(glow,(p.x-PARTICLE_RADIUS),(p.y-PARTICLE_RADIUS),PARTICLE_RADIUS*2,PARTICLE_RADIUS*2); for(let j=i+1;j<pts.length;j++){const q=pts[j], dx=p.x-q.x, dy=p.y-q.y, d=Math.hypot(dx,dy); if(d<LINK_DIST){const a=(1-d/LINK_DIST)*0.6; ctx.strokeStyle=`rgba(160,240,255,${a})`; ctx.lineWidth=0.8; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();}}} ctx.restore(); requestAnimationFrame(loop);}
+  (function(){addEventListener('resize',size,{passive:true}); size(); spawn(); requestAnimationFrame(loop); addEventListener('mousemove',onMove,{passive:true}); addEventListener('mouseleave',onLeave,{passive:true}); addEventListener('click',onClick); const vid=document.getElementById('heroVideo'); if(vid){const p=vid.play(); if(p&&p.catch) p.catch(()=>vid.remove());}})();
+
+  // ===== Tools icons (case-insensitive extensions) =====
+  const ICON_MAX=12, ICON_EXTS=["svg","png","webp","jpg","jpeg","SVG","PNG","WEBP","JPG","JPEG"];
+  const ICON_LABELS={1:"3ds Max",2:"V-Ray",3:"Corona",4:"Vantage",5:"Anima",6:"Forest Pack",7:"RailClone",8:"Photoshop",9:"After Effects",10:"Premiere Pro",11:"DaVinci Resolve",12:"Unreal Engine"};
+  const toolIconsEl=document.getElementById('toolIcons');
+  function resolveIcon(n,cb){let i=0; (function next(){ if(i>=ICON_EXTS.length){cb(null);return;} const ext=ICON_EXTS[i++]; const src=`Media/icons/${n}.${ext}`; const im=new Image(); im.onload=()=>cb(src); im.onerror=next; im.src=src; })();}
+  (async function loadIcons(){let any=false; for(let n=1;n<=ICON_MAX;n++){await new Promise(r=>{resolveIcon(n,(src)=>{ if(src){any=true; const label=ICON_LABELS[n]||`Tool ${n}`; const d=document.createElement('div'); d.className="group relative flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 transition"; d.innerHTML=`<img src="${src}" alt="${label}" class="h-6 w-6 object-contain" />
+      <div class="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/80 px-2 py-1 text-xs text-white/90 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition">${label}<span class="absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-l border-t border-white/10 bg-black/80"></span></div>`; toolIconsEl.appendChild(d);} r(); });}
+    if(!any) document.getElementById('toolHint').classList.remove('hidden'); })();
+
+  // ===== IMAGES: fast, case- & folder-tolerant discovery with early stop =====
+  const IMG_DIRS = ["Media/images","Media/Images"];           // tolerate folder case
+  const THUMB_DIRS = ["Media/images/thumbs","Media/Images/thumbs","Media/Images/Thumbs"];
+  const IMG_EXTS = ["jpg","jpeg","png","webp","JPG","JPEG","PNG","WEBP"];
+  const PAGE_SIZE=6;
+  const galleryEl=document.getElementById('gallery');
+  const toggleImagesBtn=document.getElementById('toggleImages');
+  let imagesExpanded=false;
+  const imageList=[]; // {thumb, full}
+
+  function probe(url){return new Promise(res=>{const im=new Image(); im.onload=()=>res(true); im.onerror=()=>res(false); im.src=url;});}
+
+  async function resolveImageForIndex(i){
+    const n2=String(i).padStart(2,'0');
+    for(const dir of IMG_DIRS){
+      for(const ext of IMG_EXTS){
+        const fullPad=`${dir}/${n2}.${ext}`;
+        const fullNum=`${dir}/${i}.${ext}`;
+        if(await probe(fullPad)){ // found full
+          // find thumb
+          for(const tdir of THUMB_DIRS){
+            const thPad=`${tdir}/${n2}.${ext}`, thNum=`${tdir}/${i}.${ext}`;
+            if(await probe(thPad)) return {thumb:thPad, full:fullPad};
+            if(await probe(thNum)) return {thumb:thNum, full:fullPad};
+          }
+          return {thumb:fullPad, full:fullPad};
+        }
+        if(await probe(fullNum)){
+          for(const tdir of THUMB_DIRS){
+            const thPad=`${tdir}/${n2}.${ext}`, thNum=`${tdir}/${i}.${ext}`;
+            if(await probe(thNum)) return {thumb:thNum, full:fullNum};
+            if(await probe(thPad)) return {thumb:thPad, full:fullNum};
+          }
+          return {thumb:fullNum, full:fullNum};
+        }
+      }
+    }
+    return null;
+  }
+
+  // Bounded initial scan; extend on demand
+  const INITIAL_MAX_INDEX = 40;   // fast first render
+  const MISS_STREAK_STOP = 12;    // early stop on gaps
+  let highestScanned = 0;
+
+  async function discoverImagesBatch(limit){
+    let misses=0;
+    while(highestScanned < limit){
+      highestScanned++;
+      const entry = await resolveImageForIndex(highestScanned);
+      if(entry){ imageList.push(entry); misses=0; }
+      else { misses++; if(misses >= MISS_STREAK_STOP) break; }
+    }
+  }
+
+  function imgCard(entry, idx){
+    const btn=document.createElement('button');
+    btn.className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
+    btn.setAttribute('data-index', idx);
+    const img=document.createElement('img');
+    img.src=entry.thumb; img.loading="lazy"; img.decoding="async"; img.fetchPriority="low"; img.alt="";
+    img.className="thumb h-full w-full object-cover";
+    img.onerror=()=>btn.remove();
+    const glow=document.createElement('div'); glow.className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
+    const badge=document.createElement('div'); badge.className="pointer-events-none absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition"; badge.innerHTML=`<span class="rounded-full border border-white/30 bg-black/30 backdrop-blur px-2 py-0.5 text-xs">View</span>`;
+    btn.appendChild(img); btn.appendChild(glow); btn.appendChild(badge);
+    btn.addEventListener('click', openLightbox);
+    return btn;
+  }
+
+  function renderImages(){
+    galleryEl.innerHTML="";
+    const total=imageList.length;
+    const toShow=imagesExpanded? total : Math.min(PAGE_SIZE,total);
+    for(let i=0;i<toShow;i++){ galleryEl.appendChild(imgCard(imageList[i], i)); }
+    toggleImagesBtn.textContent = imagesExpanded ? "Show less" : "Show more";
+    document.getElementById('galleryActions').classList.toggle('hidden', total<=PAGE_SIZE);
+  }
+
+  // Lightbox
+  const lb=document.getElementById('lightbox'), lbImg=document.getElementById('lbImg');
+  const lbClose=document.getElementById('lbClose'), lbPrev=document.getElementById('lbPrev'), lbNext=document.getElementById('lbNext');
+  let currentIndex=0;
+  function openLightbox(e){ currentIndex=parseInt(e.currentTarget.getAttribute('data-index'),10)||0; lbImg.src=imageList[currentIndex].full; lb.classList.remove('hidden'); document.body.style.overflow="hidden"; }
+  function closeLightbox(){ lb.classList.add('hidden'); document.body.style.overflow=""; }
+  function show(delta){ currentIndex=(currentIndex+delta+imageList.length)%imageList.length; lbImg.src=imageList[currentIndex].full; }
+  lbClose.addEventListener('click', closeLightbox);
+  lb.addEventListener('click', e=>{ if(e.target===lb || e.target.classList.contains('bg-black/90')) closeLightbox(); });
+  lbPrev.addEventListener('click', ()=>show(-1));
+  lbNext.addEventListener('click', ()=>show(1));
+  addEventListener('keydown', e=>{ if(lb.classList.contains('hidden')) return; if(e.key==='Escape') closeLightbox(); if(e.key==='ArrowLeft') show(-1); if(e.key==='ArrowRight') show(1); });
+
+  toggleImagesBtn.addEventListener('click', async ()=>{
+    imagesExpanded = !imagesExpanded;
+    if(imagesExpanded){
+      // When expanding, scan further (next 80 indices)
+      await discoverImagesBatch(highestScanned + 80);
+    }
+    renderImages();
+  });
+
+  (async function initImages(){
+    await discoverImagesBatch(INITIAL_MAX_INDEX);
+    if(!imageList.length){ document.getElementById('portfolio').classList.add('hidden'); return; }
+    renderImages();
+  })();
+
+  // ===== (Videos section kept; you removed files for now) =====
+  const videoGrid=document.getElementById('videoGrid');
+  const toggleVideosBtn=document.getElementById('toggleVideos');
+  const VIDEO_EXTS=["mp4","webm","mov","MP4","WEBM","MOV"];
+  const videoList=[]; let videosExpanded=false;
+  function canPlayVideo(src){return new Promise(res=>{const v=document.createElement('video'); v.preload='metadata'; v.muted=true; v.src=src; let done=false; v.oncanplay=()=>{if(!done){done=true;res(true);}}; v.onerror=()=>{if(!done){done=true;res(false);}}; v.load(); setTimeout(()=>{if(!done)res(false);},2000);});}
+  async function resolveVideoForIndex(i){const n2=String(i).padStart(2,'0'); for(const ext of VIDEO_EXTS){const p1=`Media/Videos/${n2}.${ext}`, p2=`Media/Videos/${i}.${ext}`; if(await canPlayVideo(p1)) return p1; if(await canPlayVideo(p2)) return p2;} return null;}
+  const VIDEO_PAGE=6; let vidScanned=0;
+  async function discoverVideosBatch(limit){ let misses=0; while(vidScanned<limit){ vidScanned++; const src=await resolveVideoForIndex(vidScanned); if(src){videoList.push(src); misses=0;} else {misses++; if(misses>=8) break;} } }
+  function videoCard(src,idx){ const btn=document.createElement('button'); btn.className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none"; btn.setAttribute('data-vidindex',idx); const vid=document.createElement('video'); vid.src=src; vid.className="thumb h-full w-full object-cover opacity-90"; vid.muted=true; vid.loop=true; vid.playsInline=true; vid.oncanplay=()=>{vid.play().catch(()=>{});}; vid.onerror=()=>btn.remove(); const badge=document.createElement('div'); badge.className="absolute inset-0 grid place-items-center pointer-events-none"; badge.innerHTML=`<span class="rounded-full border border-white/50 bg-black/40 backdrop-blur px-3 py-1 text-sm">▶ Play</span>`; const glow=document.createElement('div'); glow.className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent"; btn.appendChild(vid); btn.appendChild(badge); btn.appendChild(glow); btn.addEventListener('click', openVideoLightbox); return btn;}
+  function renderVideos(){ videoGrid.innerHTML=""; const toShow=videosExpanded? videoList.length : Math.min(VIDEO_PAGE, videoList.length); for(let i=0;i<toShow;i++){ videoGrid.appendChild(videoCard(videoList[i], i)); } toggleVideosBtn.textContent = videosExpanded ? "Show less" : "Show more"; document.getElementById('videoActions').classList.toggle('hidden', videoList.length<=VIDEO_PAGE); }
+  const vlb=document.getElementById('vidLightbox'), vlbVideo=document.getElementById('vlbVideo'), vlbClose=document.getElementById('vlbClose'), vlbPrev=document.getElementById('vlbPrev'), vlbNext=document.getElementById('vlbNext'); let currentVidIndex=0;
+  function openVideoLightbox(e){ const btn=e.currentTarget; currentVidIndex=parseInt(btn.getAttribute('data-vidindex'),10)||0; vlbVideo.src=videoList[currentVidIndex]; vlb.classList.remove('hidden'); document.body.style.overflow="hidden"; vlbVideo.currentTime=0; vlbVideo.play().catch(()=>{}); }
+  function closeVideoLightbox(){ vlb.classList.add('hidden'); document.body.style.overflow=""; vlbVideo.pause(); vlbVideo.src=""; }
+  function showVideo(d){ currentVidIndex=(currentVidIndex+d+videoList.length)%videoList.length; vlbVideo.src=videoList[currentVidIndex]; vlbVideo.currentTime=0; vlbVideo.play().catch(()=>{}); }
+  vlbClose.addEventListener('click', closeVideoLightbox);
+  vlb.addEventListener('click', e=>{ if(e.target===vlb || e.target.classList.contains('bg-black/90')) closeVideoLightbox(); });
+  vlbPrev.addEventListener('click', ()=>showVideo(-1));
+  vlbNext.addEventListener('click', ()=>showVideo(1));
+  addEventListener('keydown', e=>{ if(!vlb.classList.contains('hidden')){ if(e.key==='Escape') closeVideoLightbox(); if(e.key==='ArrowLeft') showVideo(-1); if(e.key==='ArrowRight') showVideo(1); }});
+
+  toggleVideosBtn.addEventListener('click', async ()=>{ videosExpanded=!videosExpanded; if(videosExpanded){ await discoverVideosBatch(vidScanned+60); } renderVideos(); });
+  (async function initVideos(){ await discoverVideosBatch(40); if(!videoList.length){ document.getElementById('videos').classList.add('hidden'); return;} renderVideos(); })();
+</script>
+</body>
+</html>
