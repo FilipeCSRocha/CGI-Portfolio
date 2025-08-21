@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Filipe Rocha — CGI Portfolio</title>
 
-  <!-- Tailwind (unchanged). Replace with compiled CSS when ready. -->
+  <!-- Tailwind (CDN for convenience). Replace with compiled CSS when ready. -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Favicon (unchanged) -->
-  <link rel="icon" type="image/png" href="Media/icons/1.png" />
+  <!-- New custom favicon (inline SVG “FR” monogram) -->
+  <link rel="icon" href='data:image/svg+xml,<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%2300e5ff"/><stop offset="1" stop-color="%2380ffea"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="%230a0f12"/><path d="M16 20h22v6H22v6h14v6H22v10h-6z" fill="url(%23g1)"/><path d="M34 20h14c6 0 10 4 10 9 0 4-3 7-7 8l8 11h-8l-7-10h-4v10h-6zM40 26v6h8c2 0 4-1 4-3s-2-3-4-3z" fill="%23e8feff" opacity="0.9"/></svg>' />
 
   <style>
     html{scroll-behavior:smooth}
@@ -27,13 +27,24 @@
     .group:hover .thumb, .group.active .thumb{ filter:grayscale(30%); transform:scale(1.04); }
     /* Keep lightboxes hidden until opened */
     #lightbox.hidden, #vidLightbox.hidden { display: none; }
+
+    /* Fallback: if we can't lock device orientation, rotate the video on portrait phones */
+    @media (max-width: 639px) and (orientation: portrait) {
+      #vidLightbox.force-landscape #vlbVideo{
+        transform: rotate(90deg);
+        transform-origin: center center;
+        width: 100vh;   /* swap axes after rotation */
+        height: 100vw;
+        object-fit: contain;
+      }
+    }
   </style>
 </head>
 <body class="min-h-screen selection:bg-cyan-300/20">
-  <!-- Background particles (unchanged visual) -->
+  <!-- Background particles -->
   <canvas id="fx"></canvas>
 
-  <!-- HERO (unchanged) -->
+  <!-- HERO -->
   <section class="relative z-10 h-[90svh] overflow-hidden">
     <video id="heroVideo" class="absolute inset-0 h-full w-full object-cover opacity-55" src="https://cdn.coverr.co/videos/coverr-modern-interior-8050/1080p.mp4" autoplay muted playsinline loop style="z-index:0"></video>
     <div class="relative z-10 flex h-full items-center justify-center">
@@ -49,7 +60,7 @@
     <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60"></div>
   </section>
 
-  <!-- ABOUT (unchanged content) -->
+  <!-- ABOUT -->
   <section id="about" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
     <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">About Me</h2>
     <div class="grid gap-8 md:grid-cols-[1fr_1.6fr] items-start">
@@ -72,7 +83,7 @@
     </div>
   </section>
 
-  <!-- PORTFOLIO (unchanged markup; behavior tweaked below) -->
+  <!-- PORTFOLIO -->
   <section id="portfolio" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
     <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Portfolio</h2>
     <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
@@ -81,7 +92,7 @@
     </div>
   </section>
 
-  <!-- VIDEOS (unchanged markup; behavior tweaked below) -->
+  <!-- VIDEOS -->
   <section id="videos" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
     <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Videos</h2>
     <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
@@ -92,14 +103,13 @@
       <div class="absolute inset-0 bg-black/90"></div>
       <div class="relative h-full w-full flex items-center justify-center p-4">
         <button id="vlbClose" class="absolute top-4 right-4 btn" aria-label="Close video">✕ Close</button>
-        <button id="vlbPrev" class="absolute left-4 top-1/2 -translate-y-1/2 btn" aria-label="Previous video">⟵ Prev</button>
-        <button id="vlbNext" class="absolute right-4 top-1/2 -translate-y-1/2 btn" aria-label="Next video">Next ⟶</button>
+        <!-- Prev/Next removed per request -->
         <video id="vlbVideo" src="" class="block max-w-[92vw] max-h-[90vh] rounded-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]" controls playsinline></video>
       </div>
     </div>
   </section>
 
-  <!-- RESUME (unchanged) -->
+  <!-- RESUME -->
   <section id="resume" class="relative z-10 mx-auto max-w-6xl px-6 pb-24">
     <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Resume</h2>
     <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
@@ -122,7 +132,7 @@
     </div>
   </section>
 
-  <!-- CONTACT (unchanged) -->
+  <!-- CONTACT -->
   <footer id="contact" class="relative z-10 border-t border-white/10 bg-white/5">
     <div class="mx-auto max-w-6xl px-6 py-12">
       <div class="grid gap-4 md:grid-cols-2 items-center">
@@ -141,7 +151,7 @@
     </div>
   </footer>
 
-  <!-- IMAGE LIGHTBOX (unchanged) -->
+  <!-- IMAGE LIGHTBOX -->
   <div id="lightbox" class="fixed inset-0 hidden" style="z-index:2147483647;" aria-hidden="true">
     <div class="absolute inset-0 bg-black/90"></div>
     <div class="relative h-full w-full flex items-center justify-center p-4">
@@ -153,7 +163,7 @@
   </div>
 
 <script>
-  // Year (unchanged)
+  // Year
   document.getElementById('year').textContent = new Date().getFullYear();
 
   /* ================= BACKGROUND PARTICLES (unchanged behavior) ================= */
@@ -327,7 +337,7 @@
     init();
   })();
 
-  /* ================= SMALL HELPERS (unchanged) ================= */
+  /* ================= SMALL HELPERS ================= */
   async function headExists(url){
     try { const r = await fetch(url, { method: 'HEAD', cache: 'no-store' }); return r.ok; }
     catch { return false; }
@@ -341,7 +351,7 @@
     });
   }
 
-  /* ================= PROFILE (unchanged logic) ================= */
+  /* ================= PROFILE ================= */
   (async function(){
     var candidates = [
       "Media/images/Profile.jpg","Media/images/Profile.JPG","Media/images/Profile.jpeg","Media/images/Profile.JPEG",
@@ -355,7 +365,7 @@
     var el = document.getElementById('profileImg'); if (el) el.src = src;
   })();
 
-  /* ================= TOOLS (unchanged behavior) ================= */
+  /* ================= TOOLS ================= */
   (function(){
     var ICON_MAX = 12;
     var ICON_EXTS = ["png","PNG"];
@@ -397,7 +407,7 @@
     })();
   })();
 
-  /* ================= IMAGES (manifest-driven; unchanged except for 'active' support) ================= */
+  /* ================= IMAGES (manifest-driven; with centered 'active') ================= */
   (async function() {
     const galleryEl = document.getElementById('gallery');
     const toggleBtn = document.getElementById('toggleImages');
@@ -458,7 +468,7 @@
       refreshActiveCentered(); // ensure correct 'active' after (re)render
     }
 
-    // Image lightbox (unchanged)
+    // Image lightbox
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lbImg');
     const lbClose = document.getElementById('lbClose');
@@ -505,8 +515,7 @@
   })();
 
   /* ================= VIDEOS (manifest-driven) =================
-     Change: previews play on HOVER only (desktop),
-             and on MOBILE 1-column the centered card auto-previews.
+     Tweaks: hover-only preview on desktop; mobile fullscreen forces landscape.
   ============================================================= */
   (async function(){
     const videoGrid = document.getElementById('videoGrid');
@@ -532,7 +541,8 @@
       vid.src = src;
       vid.className = "thumb h-full w-full object-cover opacity-90";
       vid.muted = true; vid.playsInline = true;
-      vid.preload = "metadata";     // <-- no eager buffering; no auto-play
+      vid.preload = "metadata";     // no eager buffering; no auto-play
+
       // Desktop preview on hover only
       btn.addEventListener('mouseenter', ()=>{
         if (window.matchMedia('(hover: hover)').matches) { vid.play().catch(()=>{}); }
@@ -567,15 +577,32 @@
       refreshActiveCentered(); // ensure correct 'active' after (re)render
     }
 
-    // Lightbox (unchanged except autoplay when opened)
+    // Lightbox (Prev/Next removed; Escape only)
     const vlb = document.getElementById('vidLightbox');
     const vlbVideo = document.getElementById('vlbVideo');
     const vlbClose = document.getElementById('vlbClose');
-    const vlbPrev = document.getElementById('vlbPrev');
-    const vlbNext = document.getElementById('vlbNext');
     let current = 0;
 
-    function openLightbox(e){
+    async function tryFullscreenLandscape(target){
+      // Request fullscreen (container preferred for overlay controls)
+      try { if (target.requestFullscreen && !document.fullscreenElement) await target.requestFullscreen(); } catch(_){}
+      // Lock orientation if API available
+      try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); }
+      catch(_) {
+        // CSS fallback if lock fails and we're on a small portrait screen
+        if (window.matchMedia('(max-width: 639px) and (orientation: portrait)').matches){
+          document.getElementById('vidLightbox').classList.add('force-landscape');
+        }
+      }
+    }
+
+    function unlockAndExitFullscreen(){
+      document.getElementById('vidLightbox').classList.remove('force-landscape');
+      try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch(_){}
+      try { if (document.fullscreenElement) document.exitFullscreen(); } catch(_){}
+    }
+
+    async function openLightbox(e){
       const btn = e.currentTarget;
       current = parseInt(btn.getAttribute('data-vidindex'), 10) || 0;
       vlbVideo.src = `Media/videos/${files[current]}`;
@@ -583,30 +610,40 @@
       vlb.setAttribute('aria-hidden','false');
       document.body.style.overflow = "hidden";
       vlbVideo.currentTime = 0;
+
+      // Force landscape on mobile portrait
+      if (window.matchMedia('(max-width: 639px)').matches){
+        await tryFullscreenLandscape(vlb); // try on container for better chrome
+      }
+
       vlbVideo.play().catch(()=>{});
     }
+
     function closeLightbox(){
       vlb.classList.add('hidden');
       vlb.setAttribute('aria-hidden','true');
       document.body.style.overflow = "";
       vlbVideo.pause();
       vlbVideo.src = "";
+      unlockAndExitFullscreen();
     }
-    function show(delta){
-      current = (current + delta + files.length) % files.length;
-      vlbVideo.src = `Media/videos/${files[current]}`;
-      vlbVideo.currentTime = 0;
-      vlbVideo.play().catch(()=>{});
-    }
+
     vlbClose.addEventListener('click', closeLightbox);
     vlb.addEventListener('click', (e)=>{ if(e.target === vlb || e.target.classList.contains('bg-black/90')) closeLightbox(); });
-    vlbPrev.addEventListener('click', ()=>show(-1));
-    vlbNext.addEventListener('click', ()=>show(1));
     window.addEventListener('keydown', (e)=>{
       if (!vlb.classList.contains('hidden')) {
         if (e.key === 'Escape') closeLightbox();
-        if (e.key === 'ArrowLeft') show(-1);
-        if (e.key === 'ArrowRight') show(1);
+        // Arrow keys intentionally ignored (no prev/next)
+      }
+    });
+    window.addEventListener('orientationchange', ()=>{
+      // If user rotates mid-play and we used CSS fallback, re-evaluate class
+      const lb = document.getElementById('vidLightbox');
+      if (lb.classList.contains('hidden')) return;
+      if (window.matchMedia('(orientation: landscape)').matches){
+        lb.classList.remove('force-landscape');
+      } else if (window.matchMedia('(max-width: 639px)').matches){
+        lb.classList.add('force-landscape');
       }
     });
 
@@ -629,11 +666,7 @@
     }
   })();
 
-  /* ================= CENTERED-ITEM "ACTIVE" LOGIC =================
-     On mobile (<= 639px, 1-column grids), the single item nearest the
-     viewport center in each grid gets class 'active'. If it's a video
-     card, we also auto-preview it; all other videos are paused/reset.
-  ================================================================== */
+  /* ================= CENTERED-ITEM "ACTIVE" LOGIC ================= */
   (function(){
     const gallery = document.getElementById('gallery');
     const videoGrid = document.getElementById('videoGrid');
