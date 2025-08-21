@@ -8,7 +8,7 @@
   <!-- Tailwind (CDN for convenience). Replace with compiled CSS when ready. -->
   <script src="https://cdn.tailwindcss.com/3.4.10"></script>
 
-  <!-- New custom favicon (inline SVG “FR” monogram) -->
+  <!-- Inline favicon (FR monogram) -->
   <link rel="icon" href='data:image/svg+xml,<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%2300e5ff"/><stop offset="1" stop-color="%2380ffea"/></linearGradient></defs><rect width="64" height="64" rx="12" fill="%230a0f12"/><path d="M16 20h22v6H22v6h14v6H22v10h-6z" fill="url(%23g1)"/><path d="M34 20h14c6 0 10 4 10 9 0 4-3 7-7 8l8 11h-8l-7-10h-4v10h-6zM40 26v6h8c2 0 4-1 4-3s-2-3-4-3z" fill="%23e8feff" opacity="0.9"/></svg>' />
 
   <style>
@@ -26,7 +26,7 @@
     .group:hover .thumb, .group.active .thumb{ filter:grayscale(30%); transform:scale(1.04); }
     #lightbox.hidden, #vidLightbox.hidden { display: none; }
 
-    /* Respect users who prefer reduced motion */
+    /* Respect reduced motion preferences */
     @media (prefers-reduced-motion: reduce) {
       #heroVideo, #fx { display: none !important; }
       * { animation: none !important; transition: none !important; }
@@ -92,15 +92,6 @@
     <div id="videoActions" class="mt-8 flex justify-center">
       <button id="toggleVideos" class="btn">Show more</button>
     </div>
-
-    <!-- Simple, orientation-agnostic lightbox (no forced landscape) -->
-    <div id="vidLightbox" class="fixed inset-0 z-[2137658] hidden" aria-hidden="true">
-      <div class="absolute inset-0 bg-black/90"></div>
-      <div class="relative h-full w-full flex items-center justify-center p-4">
-        <button id="vlbClose" class="absolute top-4 right-4 btn" aria-label="Close video">✕ Close</button>
-        <video id="vlbVideo" class="block max-w-[92vw] max-h-[90vh] rounded-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]" controls playsinline></video>
-      </div>
-    </div>
   </section>
 
   <!-- RESUME -->
@@ -145,14 +136,26 @@
     </div>
   </footer>
 
-  <!-- IMAGE LIGHTBOX -->
-  <div id="lightbox" class="fixed inset-0 hidden" style="z-index:2147483647;" aria-hidden="true">
+  <!-- ==== LIGHTBOXES (placed at end so they overlay everything) ==== -->
+
+  <!-- IMAGE LIGHTBOX (with fullscreen toggle) -->
+  <div id="lightbox" class="fixed inset-0 hidden z-[2147483647]" aria-hidden="true">
     <div class="absolute inset-0 bg-black/90"></div>
     <div class="relative h-full w-full flex items-center justify-center p-4">
       <button id="lbClose" class="absolute top-4 right-4 btn" aria-label="Close image">✕ Close</button>
       <button id="lbPrev" class="absolute left-4 top-1/2 -translate-y-1/2 btn" aria-label="Previous image">⟵ Prev</button>
       <button id="lbNext" class="absolute right-4 top-1/2 -translate-y-1/2 btn" aria-label="Next image">Next ⟶</button>
+      <button id="lbFull" class="absolute bottom-4 right-4 btn" aria-label="Fullscreen image">⛶ Fullscreen</button>
       <img id="lbImg" src="" alt="" class="block max-w-[92vw] max-h-[90vh] object-contain rounded-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]" />
+    </div>
+  </div>
+
+  <!-- VIDEO LIGHTBOX (very high z-index to overlay resume/text) -->
+  <div id="vidLightbox" class="fixed inset-0 z-[2147483646] hidden" aria-hidden="true">
+    <div class="absolute inset-0 bg-black/90"></div>
+    <div class="relative h-full w-full flex items-center justify-center p-4">
+      <button id="vlbClose" class="absolute top-4 right-4 btn" aria-label="Close video">✕ Close</button>
+      <video id="vlbVideo" class="block max-w-[92vw] max-h-[90vh] rounded-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]" controls playsinline></video>
     </div>
   </div>
 
@@ -331,7 +334,7 @@
     init();
   })();
 
-  /* ================= SMALL HELPERS ================= */
+  /* ================= HELPERS ================= */
   async function headExists(url){
     try { const r = await fetch(url, { method: 'HEAD', cache: 'no-store' }); return r.ok; }
     catch { return false; }
@@ -448,7 +451,6 @@
       img.setAttribute('fetchpriority','low');
       img.setAttribute('width','1600');
       img.setAttribute('height','1200');
-      // Optional responsive hints (safe even if same file)
       img.srcset = `${entry.thumb} 800w, ${entry.thumb} 1200w, ${entry.thumb} 1600w`;
       img.sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
       img.className = "thumb h-full w-full object-cover";
@@ -483,6 +485,7 @@
     const lbClose = document.getElementById('lbClose');
     const lbPrev = document.getElementById('lbPrev');
     const lbNext = document.getElementById('lbNext');
+    const lbFull = document.getElementById('lbFull');
     let current = 0;
 
     function openLightbox(e) {
@@ -509,7 +512,7 @@
       if (e.key === 'ArrowRight') show(1);
     });
 
-    // Focus trap + swipe for image lightbox
+    // Focus trap + swipe + fullscreen for image lightbox
     (function(){
       function focusables(){
         return Array.from(lb.querySelectorAll('button,[href],[tabindex]:not([tabindex="-1"])')).filter(el=>!el.disabled);
@@ -537,6 +540,14 @@
         if (!active) return; active=false;
         if (Math.abs(dx) > 60 && Math.abs(dy) < 80){ show(dx > 0 ? -1 : 1); }
       });
+
+      // Fullscreen toggle for image
+      lbFull.addEventListener('click', async ()=>{
+        try {
+          if (!document.fullscreenElement) { await lbImg.requestFullscreen(); }
+          else { await document.exitFullscreen(); }
+        } catch(e){ console.warn('Fullscreen toggle failed', e); }
+      });
     })();
 
     toggleBtn.addEventListener('click', function(){
@@ -563,7 +574,7 @@
     }
   })();
 
-  /* ================= VIDEOS (manifest-driven; no forced orientation) ================= */
+  /* ================= VIDEOS (manifest-driven; orientation-agnostic) ================= */
   (async function(){
     const videoGrid = document.getElementById('videoGrid');
     const toggleBtn = document.getElementById('toggleVideos');
@@ -590,15 +601,12 @@
       vid.className = "thumb h-full w-full object-cover opacity-90";
       vid.muted = true; vid.playsInline = true;
       vid.preload = "metadata";
-      // Optional: use a jpg next to each mp4 for a poster (if present)
       vid.poster = src.replace(/\.\w+$/, '.jpg');
 
-      // Source elements allow browsers to pick best codec
       const webm = document.createElement('source'); webm.src = src.replace(/\.mp4$/i, '.webm'); webm.type = "video/webm";
       const mp4  = document.createElement('source'); mp4.src  = src; mp4.type = "video/mp4";
       vid.appendChild(webm); vid.appendChild(mp4);
 
-      // Desktop preview on hover only
       btn.addEventListener('mouseenter', ()=>{
         if (window.matchMedia('(hover: hover)').matches) { vid.play().catch(()=>{}); }
       });
@@ -632,7 +640,7 @@
       refreshActiveCentered();
     }
 
-    // Lightbox (no orientation lock, no forced fullscreen)
+    // Lightbox (no forced orientation)
     const vlb = document.getElementById('vidLightbox');
     const vlbVideo = document.getElementById('vlbVideo');
     const vlbClose = document.getElementById('vlbClose');
@@ -642,11 +650,9 @@
       const btn = e.currentTarget;
       current = parseInt(btn.getAttribute('data-vidindex'), 10) || 0;
 
-      // Populate sources fresh for the selected video
       const filename = files[current];
-      vlbVideo.innerHTML = ""; // clear previous <source> children
-      const poster = `Media/videos/${filename.replace(/\.\w+$/, '.jpg')}`;
-      vlbVideo.poster = poster;
+      vlbVideo.innerHTML = "";
+      vlbVideo.poster = `Media/videos/${filename.replace(/\.\w+$/, '.jpg')}`;
 
       const webm = document.createElement('source'); webm.src = `Media/videos/${filename.replace(/\.mp4$/i, '.webm')}`; webm.type = "video/webm";
       const mp4  = document.createElement('source'); mp4.src  = `Media/videos/${filename}`; mp4.type = "video/mp4";
