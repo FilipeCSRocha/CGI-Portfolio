@@ -21,6 +21,7 @@
   </style>
 </head>
 <body class="min-h-screen selection:bg-cyan-300/20">
+  <!-- Background particles -->
   <canvas id="fx"></canvas>
 
   <!-- HERO -->
@@ -131,7 +132,7 @@
     </div>
   </footer>
 
-  <!-- IMAGE LIGHTBOX (top-most) -->
+  <!-- IMAGE LIGHTBOX -->
   <div id="lightbox" class="fixed inset-0 hidden" style="z-index:2147483647;">
     <div class="absolute inset-0 bg-black/90"></div>
     <div class="relative h-full w-full flex items-center justify-center p-4">
@@ -146,158 +147,533 @@
   // Year
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  // ===== Background particles (unchanged) =====
-  const canvas = document.getElementById('fx'), ctx = canvas.getContext('2d'), DPR=window.devicePixelRatio||1;
-  const PARTICLE_RADIUS=6, COUNT=12, BASE_RADIUS=220, STIFFNESS=15, DAMPING=0.88, SWIRL=2, LINK_DIST=190, GRID_ALPHA=0.055, GRID_SPACING=96, NOISE=180, SPAWN_MODE='edges', CLICK_IMPULSE=1200;
-  const anchor={x:innerWidth*0.5,y:innerHeight*0.45}, mouse={x:anchor.x,y:anchor.y,active:false}, pts=[], state={scatter:0.2};
-  const glow=document.createElement('canvas'); (function(){const r=PARTICLE_RADIUS; glow.width=glow.height=r*DPR*2; const g=glow.getContext('2d'); g.setTransform(DPR,0,0,DPR,0,0); const grd=g.createRadialGradient(r,r,0,r,r,r); grd.addColorStop(0,'rgba(160,240,255,0.95)'); grd.addColorStop(1,'rgba(160,240,255,0)'); g.fillStyle=grd; g.beginPath(); g.arc(r,r,r,0,Math.PI*2); g.fill();})();
-  function size(){canvas.width=Math.max(1,Math.floor(innerWidth))*DPR; canvas.height=Math.max(1,Math.floor(innerHeight))*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);}
-  function spawn(){const cw=Math.max(1,Math.floor(innerWidth)), ch=Math.max(1,Math.floor(innerHeight)); pts.length=0; for(let i=0;i<COUNT;i++){let sx,sy; if(SPAWN_MODE==='center'){sx=anchor.x; sy=anchor.y;} else {const e=Math.floor(Math.random()*4); if(e===0){sx=-20;sy=Math.random()*ch;} if(e===1){sx=cw+20;sy=Math.random()*ch;} if(e===2){sx=Math.random()*cw;sy=-20;} if(e===3){sx=Math.random()*cw;sy=ch+20;}} const a=Math.random()*Math.PI*2; const r=(0.4+Math.random()*0.6)*BASE_RADIUS; const toAx=anchor.x-sx,toAy=anchor.y-sy; const dist=Math.hypot(toAx,toAy)||1; const iv=180+Math.random()*180; pts.push({x:sx,y:sy,vx:(toAx/dist)*iv,vy:(toAy/dist)*iv,homeA:a,homeR:r,swirl:(0.3+Math.random()*0.7)*SWIRL});}}
-  function onMove(e){mouse.x=e.clientX; mouse.y=e.clientY; mouse.active=true;} function onLeave(){mouse.active=false;}
-  function onClick(e){const cx=e.clientX,cy=e.clientY; state.scatter=Math.min(1.5,state.scatter+1.0); for(const p of pts){const dx=p.x-cx, dy=p.y-cy, d=Math.hypot(dx,dy)+0.001, uX=dx/d, uY=dy/d, impulse=CLICK_IMPULSE*(0.6+0.4*Math.random()); p.vx+=uX*impulse; p.vy+=uY*impulse;}}
-  const footerEl=document.getElementById('contact'); function getFade(){if(!footerEl) return 1; const rect=footerEl.getBoundingClientRect(); const vh=innerHeight||document.documentElement.clientHeight; const start=vh, end=vh*0.4; if(rect.top>=start) return 1; if(rect.top<=end) return 0; return (rect.top-end)/(start-end);}
-  let last=performance.now(); function loop(now){const dt=Math.min(0.05,(now-last)/1000); last=now; const cw=Math.max(1,Math.floor(innerWidth)), ch=Math.max(1,Math.floor(innerHeight)); const k=12; const tx=mouse.active?mouse.x:anchor.x, ty=mouse.active?mouse.y:anchor.y; anchor.x+=(tx-anchor.x)*Math.min(1,k*dt); anchor.y+=(ty-anchor.y)*Math.min(1,k*dt); if(state.scatter>0) state.scatter=Math.max(0,state.scatter-1.2*dt); ctx.clearRect(0,0,cw,ch); const fade=getFade(); ctx.save(); ctx.globalAlpha=fade; ctx.save(); ctx.globalAlpha*=GRID_ALPHA; ctx.lineWidth=1; ctx.strokeStyle='#7fd0ff'; const ox=((anchor.x/cw)-0.5)*8, oy=((anchor.y/ch)-0.5)*8; for(let x=(ox%GRID_SPACING)-GRID_SPACING; x<cw+GRID_SPACING; x+=GRID_SPACING){ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,ch); ctx.stroke();} for(let y=(oy%GRID_SPACING)-GRID_SPACING; y<ch+GRID_SPACING; y+=GRID_SPACING){ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(cw,y); ctx.stroke();} ctx.restore(); const damping=Math.pow(DAMPING,dt*60); for(const p of pts){p.homeA+=p.swirl*0.3*dt; const targetR=p.homeR*(1+state.scatter*1.4); const px=anchor.x+Math.cos(p.homeA)*targetR; const py=anchor.y+Math.sin(p.homeA)*targetR; const ax=(px-p.x)*STIFFNESS+(Math.random()-0.5)*NOISE*dt; const ay=(py-p.y)*STIFFNESS+(Math.random()-0.5)*NOISE*dt; p.vx=(p.vx+ax*dt)*damping; p.vy=(p.vy+ay*dt)*damping; p.x+=p.vx*dt; p.y+=p.vy*dt;} for(let i=0;i<pts.length;i++){const p=pts[i]; ctx.drawImage(glow,(p.x-PARTICLE_RADIUS),(p.y-PARTICLE_RADIUS),PARTICLE_RADIUS*2,PARTICLE_RADIUS*2); for(let j=i+1;j<pts.length;j++){const q=pts[j], dx=p.x-q.x, dy=p.y-q.y, d=Math.hypot(dx,dy); if(d<LINK_DIST){const a=(1-d/LINK_DIST)*0.6; ctx.strokeStyle=`rgba(160,240,255,${a})`; ctx.lineWidth=0.8; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();}}} ctx.restore(); requestAnimationFrame(loop);}
-  (function(){addEventListener('resize',size,{passive:true}); size(); spawn(); requestAnimationFrame(loop); addEventListener('mousemove',onMove,{passive:true}); addEventListener('mouseleave',onLeave,{passive:true}); addEventListener('click',onClick); const vid=document.getElementById('heroVideo'); if(vid){const p=vid.play(); if(p&&p.catch) p.catch(()=>vid.remove());}})();
+  /* ================= BACKGROUND PARTICLES (un-minified for safety) ================= */
+  (function(){
+    var canvas = document.getElementById('fx');
+    var ctx = canvas.getContext('2d');
+    var DPR = window.devicePixelRatio || 1;
 
-  // ===== Tools icons (case-insensitive extensions) =====
-  const ICON_MAX=12, ICON_EXTS=["svg","png","webp","jpg","jpeg","SVG","PNG","WEBP","JPG","JPEG"];
-  const ICON_LABELS={1:"3ds Max",2:"V-Ray",3:"Corona",4:"Vantage",5:"Anima",6:"Forest Pack",7:"RailClone",8:"Photoshop",9:"After Effects",10:"Premiere Pro",11:"DaVinci Resolve",12:"Unreal Engine"};
-  const toolIconsEl=document.getElementById('toolIcons');
-  function resolveIcon(n,cb){let i=0; (function next(){ if(i>=ICON_EXTS.length){cb(null);return;} const ext=ICON_EXTS[i++]; const src=`Media/icons/${n}.${ext}`; const im=new Image(); im.onload=()=>cb(src); im.onerror=next; im.src=src; })();}
-  (async function loadIcons(){let any=false; for(let n=1;n<=ICON_MAX;n++){await new Promise(r=>{resolveIcon(n,(src)=>{ if(src){any=true; const label=ICON_LABELS[n]||`Tool ${n}`; const d=document.createElement('div'); d.className="group relative flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 transition"; d.innerHTML=`<img src="${src}" alt="${label}" class="h-6 w-6 object-contain" />
-      <div class="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/80 px-2 py-1 text-xs text-white/90 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition">${label}<span class="absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-l border-t border-white/10 bg-black/80"></span></div>`; toolIconsEl.appendChild(d);} r(); });}
-    if(!any) document.getElementById('toolHint').classList.remove('hidden'); })();
+    var PARTICLE_RADIUS = 6;
+    var COUNT = 12;
+    var BASE_RADIUS = 220;
+    var STIFFNESS = 15.0;
+    var DAMPING = 0.88;
+    var SWIRL = 2;
+    var LINK_DIST = 190;
+    var GRID_ALPHA = 0.055;
+    var GRID_SPACING = 96;
+    var NOISE = 180;
+    var SPAWN_MODE = 'edges';
+    var CLICK_IMPULSE = 1200;
 
-  // ===== IMAGES: fast, case- & folder-tolerant discovery with early stop =====
-  const IMG_DIRS = ["Media/images","Media/Images"];           // tolerate folder case
-  const THUMB_DIRS = ["Media/images/thumbs","Media/Images/thumbs","Media/Images/Thumbs"];
-  const IMG_EXTS = ["jpg","jpeg","png","webp","JPG","JPEG","PNG","WEBP"];
-  const PAGE_SIZE=6;
-  const galleryEl=document.getElementById('gallery');
-  const toggleImagesBtn=document.getElementById('toggleImages');
-  let imagesExpanded=false;
-  const imageList=[]; // {thumb, full}
+    var anchor = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.45 };
+    var mouse  = { x: anchor.x, y: anchor.y, active: false };
+    var pts = [];
+    var state = { scatter: 0.2 };
 
-  function probe(url){return new Promise(res=>{const im=new Image(); im.onload=()=>res(true); im.onerror=()=>res(false); im.src=url;});}
+    var glow = document.createElement('canvas');
+    (function buildGlow(){
+      var r = PARTICLE_RADIUS;
+      glow.width = glow.height = r * DPR * 2;
+      var g = glow.getContext('2d');
+      g.setTransform(DPR,0,0,DPR,0,0);
+      var grad = g.createRadialGradient(r,r,0,r,r,r);
+      grad.addColorStop(0,'rgba(160,240,255,0.95)');
+      grad.addColorStop(1,'rgba(160,240,255,0)');
+      g.fillStyle = grad;
+      g.beginPath(); g.arc(r,r,r,0,Math.PI*2); g.fill();
+    })();
 
-  async function resolveImageForIndex(i){
-    const n2=String(i).padStart(2,'0');
-    for(const dir of IMG_DIRS){
-      for(const ext of IMG_EXTS){
-        const fullPad=`${dir}/${n2}.${ext}`;
-        const fullNum=`${dir}/${i}.${ext}`;
-        if(await probe(fullPad)){ // found full
-          // find thumb
-          for(const tdir of THUMB_DIRS){
-            const thPad=`${tdir}/${n2}.${ext}`, thNum=`${tdir}/${i}.${ext}`;
-            if(await probe(thPad)) return {thumb:thPad, full:fullPad};
-            if(await probe(thNum)) return {thumb:thNum, full:fullPad};
-          }
-          return {thumb:fullPad, full:fullPad};
+    function size(){
+      var cssW = Math.max(1, Math.floor(window.innerWidth));
+      var cssH = Math.max(1, Math.floor(window.innerHeight));
+      canvas.width  = cssW * DPR;
+      canvas.height = cssH * DPR;
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+    }
+
+    function spawn(){
+      var cw = Math.max(1, Math.floor(window.innerWidth));
+      var ch = Math.max(1, Math.floor(window.innerHeight));
+      pts.length = 0;
+      for (var i=0; i<COUNT; i++){
+        var sx, sy;
+        if (SPAWN_MODE === 'center'){ sx = anchor.x; sy = anchor.y; }
+        else {
+          var edge = Math.floor(Math.random()*4);
+          if (edge===0){ sx = -20; sy = Math.random()*ch; }
+          if (edge===1){ sx = cw+20; sy = Math.random()*ch; }
+          if (edge===2){ sx = Math.random()*cw; sy = -20; }
+          if (edge===3){ sx = Math.random()*cw; sy = ch+20; }
         }
-        if(await probe(fullNum)){
-          for(const tdir of THUMB_DIRS){
-            const thPad=`${tdir}/${n2}.${ext}`, thNum=`${tdir}/${i}.${ext}`;
-            if(await probe(thNum)) return {thumb:thNum, full:fullNum};
-            if(await probe(thPad)) return {thumb:thPad, full:fullNum};
-          }
-          return {thumb:fullNum, full:fullNum};
-        }
+        var a = Math.random()*Math.PI*2;
+        var r = (0.4 + Math.random()*0.6) * BASE_RADIUS;
+        var toAx = anchor.x - sx, toAy = anchor.y - sy;
+        var dist = Math.hypot(toAx,toAy) || 1;
+        var iv = 180 + Math.random()*180;
+        pts.push({ x: sx, y: sy, vx: (toAx/dist)*iv, vy: (toAy/dist)*iv, homeA: a, homeR: r, swirl: (0.3+Math.random()*0.7)*SWIRL });
       }
     }
-    return null;
-  }
 
-  // Bounded initial scan; extend on demand
-  const INITIAL_MAX_INDEX = 40;   // fast first render
-  const MISS_STREAK_STOP = 12;    // early stop on gaps
-  let highestScanned = 0;
-
-  async function discoverImagesBatch(limit){
-    let misses=0;
-    while(highestScanned < limit){
-      highestScanned++;
-      const entry = await resolveImageForIndex(highestScanned);
-      if(entry){ imageList.push(entry); misses=0; }
-      else { misses++; if(misses >= MISS_STREAK_STOP) break; }
+    function onMove(e){ mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true; }
+    function onLeave(){ mouse.active = false; }
+    function onClick(e){
+      var cx = e.clientX, cy = e.clientY;
+      state.scatter = Math.min(1.5, state.scatter + 1.0);
+      for (var i=0; i<pts.length; i++){
+        var p = pts[i];
+        var dx = p.x - cx, dy = p.y - cy;
+        var d = Math.hypot(dx,dy) + 0.001;
+        var uX = dx/d, uY = dy/d;
+        var impulse = CLICK_IMPULSE * (0.6 + 0.4*Math.random());
+        p.vx += uX * impulse; p.vy += uY * impulse;
+      }
     }
-  }
 
-  function imgCard(entry, idx){
-    const btn=document.createElement('button');
-    btn.className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
-    btn.setAttribute('data-index', idx);
-    const img=document.createElement('img');
-    img.src=entry.thumb; img.loading="lazy"; img.decoding="async"; img.fetchPriority="low"; img.alt="";
-    img.className="thumb h-full w-full object-cover";
-    img.onerror=()=>btn.remove();
-    const glow=document.createElement('div'); glow.className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
-    const badge=document.createElement('div'); badge.className="pointer-events-none absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition"; badge.innerHTML=`<span class="rounded-full border border-white/30 bg-black/30 backdrop-blur px-2 py-0.5 text-xs">View</span>`;
-    btn.appendChild(img); btn.appendChild(glow); btn.appendChild(badge);
-    btn.addEventListener('click', openLightbox);
-    return btn;
-  }
-
-  function renderImages(){
-    galleryEl.innerHTML="";
-    const total=imageList.length;
-    const toShow=imagesExpanded? total : Math.min(PAGE_SIZE,total);
-    for(let i=0;i<toShow;i++){ galleryEl.appendChild(imgCard(imageList[i], i)); }
-    toggleImagesBtn.textContent = imagesExpanded ? "Show less" : "Show more";
-    document.getElementById('galleryActions').classList.toggle('hidden', total<=PAGE_SIZE);
-  }
-
-  // Lightbox
-  const lb=document.getElementById('lightbox'), lbImg=document.getElementById('lbImg');
-  const lbClose=document.getElementById('lbClose'), lbPrev=document.getElementById('lbPrev'), lbNext=document.getElementById('lbNext');
-  let currentIndex=0;
-  function openLightbox(e){ currentIndex=parseInt(e.currentTarget.getAttribute('data-index'),10)||0; lbImg.src=imageList[currentIndex].full; lb.classList.remove('hidden'); document.body.style.overflow="hidden"; }
-  function closeLightbox(){ lb.classList.add('hidden'); document.body.style.overflow=""; }
-  function show(delta){ currentIndex=(currentIndex+delta+imageList.length)%imageList.length; lbImg.src=imageList[currentIndex].full; }
-  lbClose.addEventListener('click', closeLightbox);
-  lb.addEventListener('click', e=>{ if(e.target===lb || e.target.classList.contains('bg-black/90')) closeLightbox(); });
-  lbPrev.addEventListener('click', ()=>show(-1));
-  lbNext.addEventListener('click', ()=>show(1));
-  addEventListener('keydown', e=>{ if(lb.classList.contains('hidden')) return; if(e.key==='Escape') closeLightbox(); if(e.key==='ArrowLeft') show(-1); if(e.key==='ArrowRight') show(1); });
-
-  toggleImagesBtn.addEventListener('click', async ()=>{
-    imagesExpanded = !imagesExpanded;
-    if(imagesExpanded){
-      // When expanding, scan further (next 80 indices)
-      await discoverImagesBatch(highestScanned + 80);
+    var footerEl = document.getElementById('contact');
+    function getFade(){
+      if (!footerEl) return 1;
+      var rect = footerEl.getBoundingClientRect();
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      var start = vh, end = vh * 0.4;
+      if (rect.top >= start) return 1;
+      if (rect.top <= end) return 0;
+      return (rect.top - end) / (start - end);
     }
-    renderImages();
-  });
 
-  (async function initImages(){
-    await discoverImagesBatch(INITIAL_MAX_INDEX);
-    if(!imageList.length){ document.getElementById('portfolio').classList.add('hidden'); return; }
-    renderImages();
+    var last = performance.now();
+    function loop(now){
+      var dt = Math.min(0.05, (now - last) / 1000); last = now;
+      var cw = Math.max(1, Math.floor(window.innerWidth));
+      var ch = Math.max(1, Math.floor(window.innerHeight));
+
+      var kAnchor = 12;
+      var tx = mouse.active ? mouse.x : anchor.x;
+      var ty = mouse.active ? mouse.y : anchor.y;
+      anchor.x += (tx - anchor.x) * Math.min(1, kAnchor*dt);
+      anchor.y += (ty - anchor.y) * Math.min(1, kAnchor*dt);
+
+      if (state.scatter > 0) state.scatter = Math.max(0, state.scatter - 1.2*dt);
+
+      ctx.clearRect(0, 0, cw, ch);
+
+      var fade = getFade();
+      ctx.save(); ctx.globalAlpha = fade;
+
+      // Grid
+      ctx.save(); ctx.globalAlpha *= GRID_ALPHA; ctx.lineWidth = 1; ctx.strokeStyle = '#7fd0ff';
+      var ox = ((anchor.x/cw)-0.5)*8, oy = ((anchor.y/ch)-0.5)*8;
+      for (var x = (ox % GRID_SPACING) - GRID_SPACING; x < cw + GRID_SPACING; x += GRID_SPACING){
+        ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,ch); ctx.stroke();
+      }
+      for (var y = (oy % GRID_SPACING) - GRID_SPACING; y < ch + GRID_SPACING; y += GRID_SPACING){
+        ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(cw,y); ctx.stroke();
+      }
+      ctx.restore();
+
+      // Update cluster
+      var damping = Math.pow(DAMPING, dt*60);
+      for (var i=0; i<pts.length; i++){
+        var p = pts[i];
+        p.homeA += p.swirl * 0.3 * dt;
+        var targetR = p.homeR * (1 + state.scatter*1.4);
+        var px = anchor.x + Math.cos(p.homeA) * targetR;
+        var py = anchor.y + Math.sin(p.homeA) * targetR;
+        var ax = (px - p.x) * STIFFNESS + (Math.random()-0.5) * NOISE * dt;
+        var ay = (py - p.y) * STIFFNESS + (Math.random()-0.5) * NOISE * dt;
+        p.vx = (p.vx + ax * dt) * damping;
+        p.vy = (p.vy + ay * dt) * damping;
+        p.x += p.vx * dt; p.y += p.vy * dt;
+      }
+
+      // Draw particles + proximity lines
+      for (var i=0; i<pts.length; i++){
+        var p = pts[i];
+        ctx.drawImage(glow, (p.x - PARTICLE_RADIUS), (p.y - PARTICLE_RADIUS), PARTICLE_RADIUS*2, PARTICLE_RADIUS*2);
+        for (var j=i+1; j<pts.length; j++){
+          var q = pts[j];
+          var dx = p.x - q.x, dy = p.y - q.y, d = Math.hypot(dx,dy);
+          if (d < LINK_DIST){
+            var a = (1 - d/LINK_DIST) * 0.6;
+            ctx.strokeStyle = 'rgba(160,240,255,' + a + ')';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+          }
+        }
+      }
+
+      ctx.restore();
+      requestAnimationFrame(loop);
+    }
+
+    function init(){
+      window.addEventListener('resize', size, { passive:true });
+      size(); spawn(); requestAnimationFrame(loop);
+      window.addEventListener('mousemove', onMove, { passive:true });
+      window.addEventListener('mouseleave', onLeave, { passive:true });
+      window.addEventListener('click', onClick);
+      var vid = document.getElementById('heroVideo');
+      if (vid){ var p = vid.play(); if (p && p.catch) p.catch(function(){ vid.remove(); }); }
+    }
+    init();
   })();
 
-  // ===== (Videos section kept; you removed files for now) =====
-  const videoGrid=document.getElementById('videoGrid');
-  const toggleVideosBtn=document.getElementById('toggleVideos');
-  const VIDEO_EXTS=["mp4","webm","mov","MP4","WEBM","MOV"];
-  const videoList=[]; let videosExpanded=false;
-  function canPlayVideo(src){return new Promise(res=>{const v=document.createElement('video'); v.preload='metadata'; v.muted=true; v.src=src; let done=false; v.oncanplay=()=>{if(!done){done=true;res(true);}}; v.onerror=()=>{if(!done){done=true;res(false);}}; v.load(); setTimeout(()=>{if(!done)res(false);},2000);});}
-  async function resolveVideoForIndex(i){const n2=String(i).padStart(2,'0'); for(const ext of VIDEO_EXTS){const p1=`Media/Videos/${n2}.${ext}`, p2=`Media/Videos/${i}.${ext}`; if(await canPlayVideo(p1)) return p1; if(await canPlayVideo(p2)) return p2;} return null;}
-  const VIDEO_PAGE=6; let vidScanned=0;
-  async function discoverVideosBatch(limit){ let misses=0; while(vidScanned<limit){ vidScanned++; const src=await resolveVideoForIndex(vidScanned); if(src){videoList.push(src); misses=0;} else {misses++; if(misses>=8) break;} } }
-  function videoCard(src,idx){ const btn=document.createElement('button'); btn.className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none"; btn.setAttribute('data-vidindex',idx); const vid=document.createElement('video'); vid.src=src; vid.className="thumb h-full w-full object-cover opacity-90"; vid.muted=true; vid.loop=true; vid.playsInline=true; vid.oncanplay=()=>{vid.play().catch(()=>{});}; vid.onerror=()=>btn.remove(); const badge=document.createElement('div'); badge.className="absolute inset-0 grid place-items-center pointer-events-none"; badge.innerHTML=`<span class="rounded-full border border-white/50 bg-black/40 backdrop-blur px-3 py-1 text-sm">▶ Play</span>`; const glow=document.createElement('div'); glow.className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent"; btn.appendChild(vid); btn.appendChild(badge); btn.appendChild(glow); btn.addEventListener('click', openVideoLightbox); return btn;}
-  function renderVideos(){ videoGrid.innerHTML=""; const toShow=videosExpanded? videoList.length : Math.min(VIDEO_PAGE, videoList.length); for(let i=0;i<toShow;i++){ videoGrid.appendChild(videoCard(videoList[i], i)); } toggleVideosBtn.textContent = videosExpanded ? "Show less" : "Show more"; document.getElementById('videoActions').classList.toggle('hidden', videoList.length<=VIDEO_PAGE); }
-  const vlb=document.getElementById('vidLightbox'), vlbVideo=document.getElementById('vlbVideo'), vlbClose=document.getElementById('vlbClose'), vlbPrev=document.getElementById('vlbPrev'), vlbNext=document.getElementById('vlbNext'); let currentVidIndex=0;
-  function openVideoLightbox(e){ const btn=e.currentTarget; currentVidIndex=parseInt(btn.getAttribute('data-vidindex'),10)||0; vlbVideo.src=videoList[currentVidIndex]; vlb.classList.remove('hidden'); document.body.style.overflow="hidden"; vlbVideo.currentTime=0; vlbVideo.play().catch(()=>{}); }
-  function closeVideoLightbox(){ vlb.classList.add('hidden'); document.body.style.overflow=""; vlbVideo.pause(); vlbVideo.src=""; }
-  function showVideo(d){ currentVidIndex=(currentVidIndex+d+videoList.length)%videoList.length; vlbVideo.src=videoList[currentVidIndex]; vlbVideo.currentTime=0; vlbVideo.play().catch(()=>{}); }
-  vlbClose.addEventListener('click', closeVideoLightbox);
-  vlb.addEventListener('click', e=>{ if(e.target===vlb || e.target.classList.contains('bg-black/90')) closeVideoLightbox(); });
-  vlbPrev.addEventListener('click', ()=>showVideo(-1));
-  vlbNext.addEventListener('click', ()=>showVideo(1));
-  addEventListener('keydown', e=>{ if(!vlb.classList.contains('hidden')){ if(e.key==='Escape') closeVideoLightbox(); if(e.key==='ArrowLeft') showVideo(-1); if(e.key==='ArrowRight') showVideo(1); }});
+  /* ================= TOOLS ICONS (no template literals) ================= */
+  (function(){
+    var ICON_MAX = 12;
+    var ICON_EXTS = ["svg","png","webp","jpg","jpeg","SVG","PNG","WEBP","JPG","JPEG"];
+    var ICON_LABELS = {
+      1: "3ds Max", 2: "V-Ray", 3: "Corona", 4: "Vantage", 5: "Anima", 6: "Forest Pack",
+      7: "RailClone", 8: "Photoshop", 9: "After Effects", 10: "Premiere Pro", 11: "DaVinci Resolve", 12: "Unreal Engine"
+    };
+    var toolIconsEl = document.getElementById('toolIcons');
 
-  toggleVideosBtn.addEventListener('click', async ()=>{ videosExpanded=!videosExpanded; if(videosExpanded){ await discoverVideosBatch(vidScanned+60); } renderVideos(); });
-  (async function initVideos(){ await discoverVideosBatch(40); if(!videoList.length){ document.getElementById('videos').classList.add('hidden'); return;} renderVideos(); })();
+    function resolveIcon(n, cb){
+      var i=0;
+      function next(){
+        if (i >= ICON_EXTS.length){ cb(null); return; }
+        var ext = ICON_EXTS[i++];
+        var src = "Media/icons/" + n + "." + ext;
+        var im = new Image();
+        im.onload = function(){ cb(src); };
+        im.onerror = next;
+        im.src = src;
+      }
+      next();
+    }
+
+    (async function load(){
+      var any=false;
+      for (var n=1; n<=ICON_MAX; n++){
+        await new Promise(function(res){
+          resolveIcon(n, function(src){
+            if (src){
+              any=true;
+              var label = ICON_LABELS[n] || ("Tool " + n);
+              var wrap = document.createElement('div');
+              wrap.className = "group relative flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 transition";
+
+              var img = document.createElement('img');
+              img.src = src; img.alt = label; img.className = "h-6 w-6 object-contain";
+              wrap.appendChild(img);
+
+              var tip = document.createElement('div');
+              tip.className = "pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/80 px-2 py-1 text-xs text-white/90 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition";
+              tip.textContent = label;
+
+              var arrow = document.createElement('span');
+              arrow.className = "absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-l border-t border-white/10 bg-black/80";
+              tip.appendChild(arrow);
+
+              wrap.appendChild(tip);
+              toolIconsEl.appendChild(wrap);
+            }
+            res();
+          });
+        });
+      }
+      if (!any) document.getElementById('toolHint').classList.remove('hidden');
+    })();
+  })();
+
+  /* ================= IMAGES: thumbs + full, case/folder tolerant ================= */
+  (function(){
+    var IMG_DIRS    = ["Media/images","Media/Images"];
+    var THUMB_DIRS  = ["Media/images/thumbs","Media/Images/thumbs","Media/Images/Thumbs"];
+    var EXTENSIONS  = ["jpg","jpeg","png","webp","JPG","JPEG","PNG","WEBP"];
+    var PAGE_SIZE   = 6;
+    var INITIAL_MAX = 40;
+    var MISS_STOP   = 12;
+
+    var galleryEl = document.getElementById('gallery');
+    var toggleBtn = document.getElementById('toggleImages');
+    var imagesExpanded = false;
+    var imageList = [];     // {thumb, full}
+    var scannedTo = 0;
+
+    function probe(url){
+      return new Promise(function(res){
+        var im = new Image();
+        im.onload = function(){ res(true); };
+        im.onerror = function(){ res(false); };
+        im.src = url;
+      });
+    }
+
+    async function resolveForIndex(i){
+      var n2 = String(i).padStart(2,'0');
+      for (var d=0; d<IMG_DIRS.length; d++){
+        var dir = IMG_DIRS[d];
+        for (var e=0; e<EXTENSIONS.length; e++){
+          var ext = EXTENSIONS[e];
+
+          var fullPad = dir + "/" + n2 + "." + ext;
+          var fullNum = dir + "/" + i   + "." + ext;
+
+          if (await probe(fullPad)){
+            // find thumb
+            for (var td=0; td<THUMB_DIRS.length; td++){
+              var tdir = THUMB_DIRS[td];
+              var thPad = tdir + "/" + n2 + "." + ext;
+              var thNum = tdir + "/" + i   + "." + ext;
+              if (await probe(thPad)) return { thumb: thPad, full: fullPad };
+              if (await probe(thNum)) return { thumb: thNum, full: fullPad };
+            }
+            return { thumb: fullPad, full: fullPad };
+          }
+          if (await probe(fullNum)){
+            for (var td2=0; td2<THUMB_DIRS.length; td2++){
+              var tdir2 = THUMB_DIRS[td2];
+              var thPad2 = tdir2 + "/" + n2 + "." + ext;
+              var thNum2 = tdir2 + "/" + i   + "." + ext;
+              if (await probe(thNum2)) return { thumb: thNum2, full: fullNum };
+              if (await probe(thPad2)) return { thumb: thPad2, full: fullNum };
+            }
+            return { thumb: fullNum, full: fullNum };
+          }
+        }
+      }
+      return null;
+    }
+
+    async function discoverBatch(limit){
+      var misses = 0;
+      while (scannedTo < limit){
+        scannedTo++;
+        var entry = await resolveForIndex(scannedTo);
+        if (entry){ imageList.push(entry); misses = 0; }
+        else { misses++; if (misses >= MISS_STOP) break; }
+      }
+    }
+
+    function makeCard(entry, idx){
+      var btn = document.createElement('button');
+      btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
+      btn.setAttribute('data-index', idx);
+
+      var img = document.createElement('img');
+      img.src = entry.thumb;
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.fetchPriority = "low";
+      img.alt = "";
+      img.className = "thumb h-full w-full object-cover";
+      img.onerror = function(){ btn.remove(); };
+
+      var glow = document.createElement('div');
+      glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
+
+      var badge = document.createElement('div');
+      badge.className = "pointer-events-none absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition";
+      var badgeSpan = document.createElement('span');
+      badgeSpan.className = "rounded-full border border-white/30 bg-black/30 backdrop-blur px-2 py-0.5 text-xs";
+      badgeSpan.textContent = "View";
+      badge.appendChild(badgeSpan);
+
+      btn.appendChild(img);
+      btn.appendChild(glow);
+      btn.appendChild(badge);
+      btn.addEventListener('click', openLightbox);
+      return btn;
+    }
+
+    function render(){
+      galleryEl.innerHTML = "";
+      var total = imageList.length;
+      var toShow = imagesExpanded ? total : Math.min(PAGE_SIZE, total);
+      for (var i=0; i<toShow; i++){
+        galleryEl.appendChild(makeCard(imageList[i], i));
+      }
+      toggleBtn.textContent = imagesExpanded ? "Show less" : "Show more";
+      document.getElementById('galleryActions').classList.toggle('hidden', total <= PAGE_SIZE);
+    }
+
+    // Lightbox
+    var lb = document.getElementById('lightbox');
+    var lbImg = document.getElementById('lbImg');
+    var lbClose = document.getElementById('lbClose');
+    var lbPrev = document.getElementById('lbPrev');
+    var lbNext = document.getElementById('lbNext');
+    var current = 0;
+
+    function openLightbox(e){
+      current = parseInt(e.currentTarget.getAttribute('data-index'), 10) || 0;
+      lbImg.src = imageList[current].full;
+      lb.classList.remove('hidden');
+      document.body.style.overflow = "hidden";
+    }
+    function closeLightbox(){ lb.classList.add('hidden'); document.body.style.overflow = ""; }
+    function show(delta){
+      current = (current + delta + imageList.length) % imageList.length;
+      lbImg.src = imageList[current].full;
+    }
+    lbClose.addEventListener('click', closeLightbox);
+    lb.addEventListener('click', function(e){ if(e.target === lb || e.target.classList.contains('bg-black/90')) closeLightbox(); });
+    lbPrev.addEventListener('click', function(){ show(-1); });
+    lbNext.addEventListener('click', function(){ show(1); });
+    window.addEventListener('keydown', function(e){
+      if (lb.classList.contains('hidden')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') show(-1);
+      if (e.key === 'ArrowRight') show(1);
+    });
+
+    toggleBtn.addEventListener('click', async function(){
+      imagesExpanded = !imagesExpanded;
+      if (imagesExpanded){
+        await discoverBatch(scannedTo + 80);
+      }
+      render();
+    });
+
+    (async function init(){
+      await discoverBatch(INITIAL_MAX);
+      if (!imageList.length){
+        document.getElementById('portfolio').classList.add('hidden');
+        return;
+      }
+      render();
+    })();
+  })();
+
+  /* ================= VIDEOS (unchanged logic; safe) ================= */
+  (function(){
+    var videoGrid = document.getElementById('videoGrid');
+    var toggleBtn = document.getElementById('toggleVideos');
+    var VIDEO_EXTS = ["mp4","webm","mov","MP4","WEBM","MOV"];
+    var PAGE = 6;
+    var videoList = [];
+    var expanded = false;
+    var scanned = 0;
+
+    function canPlay(src){
+      return new Promise(function(res){
+        var v = document.createElement('video');
+        v.preload = 'metadata';
+        v.muted = true;
+        v.src = src;
+        var done = false;
+        v.oncanplay = function(){ if(!done){done=true; res(true);} };
+        v.onerror   = function(){ if(!done){done=true; res(false);} };
+        v.load();
+        setTimeout(function(){ if(!done) res(false); }, 2000);
+      });
+    }
+
+    async function resolveForIndex(i){
+      var n2 = String(i).padStart(2,'0');
+      for (var e=0; e<VIDEO_EXTS.length; e++){
+        var ext = VIDEO_EXTS[e];
+        var p1 = "Media/Videos/" + n2 + "." + ext;
+        var p2 = "Media/Videos/" + i   + "." + ext;
+        if (await canPlay(p1)) return p1;
+        if (await canPlay(p2)) return p2;
+      }
+      return null;
+    }
+
+    async function discoverBatch(limit){
+      var misses=0;
+      while (scanned < limit){
+        scanned++;
+        var src = await resolveForIndex(scanned);
+        if (src){ videoList.push(src); misses=0; }
+        else { misses++; if (misses >= 8) break; }
+      }
+    }
+
+    function card(src, idx){
+      var btn = document.createElement('button');
+      btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
+      btn.setAttribute('data-vidindex', idx);
+
+      var vid = document.createElement('video');
+      vid.src = src;
+      vid.className = "thumb h-full w-full object-cover opacity-90";
+      vid.muted = true; vid.loop = true; vid.playsInline = true;
+      vid.oncanplay = function(){ vid.play().catch(function(){}); };
+      vid.onerror = function(){ btn.remove(); };
+
+      var badge = document.createElement('div');
+      badge.className = "absolute inset-0 grid place-items-center pointer-events-none";
+      var span = document.createElement('span');
+      span.className = "rounded-full border border-white/50 bg-black/40 backdrop-blur px-3 py-1 text-sm";
+      span.textContent = "▶ Play";
+      badge.appendChild(span);
+
+      var glow = document.createElement('div');
+      glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
+
+      btn.appendChild(vid); btn.appendChild(badge); btn.appendChild(glow);
+      btn.addEventListener('click', openLightbox);
+      return btn;
+    }
+
+    function render(){
+      videoGrid.innerHTML = "";
+      var toShow = expanded ? videoList.length : Math.min(PAGE, videoList.length);
+      for (var i=0; i<toShow; i++){
+        videoGrid.appendChild(card(videoList[i], i));
+      }
+      toggleBtn.textContent = expanded ? "Show less" : "Show more";
+      document.getElementById('videoActions').classList.toggle('hidden', videoList.length <= PAGE);
+    }
+
+    var vlb = document.getElementById('vidLightbox');
+    var vlbVideo = document.getElementById('vlbVideo');
+    var vlbClose = document.getElementById('vlbClose');
+    var vlbPrev = document.getElementById('vlbPrev');
+    var vlbNext = document.getElementById('vlbNext');
+    var current = 0;
+
+    function openLightbox(e){
+      var btn = e.currentTarget;
+      current = parseInt(btn.getAttribute('data-vidindex'), 10) || 0;
+      vlbVideo.src = videoList[current];
+      vlb.classList.remove('hidden');
+      document.body.style.overflow = "hidden";
+      vlbVideo.currentTime = 0;
+      vlbVideo.play().catch(function(){});
+    }
+    function closeLightbox(){
+      vlb.classList.add('hidden');
+      document.body.style.overflow = "";
+      vlbVideo.pause();
+      vlbVideo.src = "";
+    }
+    function show(delta){
+      current = (current + delta + videoList.length) % videoList.length;
+      vlbVideo.src = videoList[current];
+      vlbVideo.currentTime = 0;
+      vlbVideo.play().catch(function(){});
+    }
+    vlbClose.addEventListener('click', closeLightbox);
+    vlb.addEventListener('click', function(e){ if(e.target === vlb || e.target.classList.contains('bg-black/90')) closeLightbox(); });
+    vlbPrev.addEventListener('click', function(){ show(-1); });
+    vlbNext.addEventListener('click', function(){ show(1); });
+    window.addEventListener('keydown', function(e){
+      if (!vlb.classList.contains('hidden')) {
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') show(-1);
+        if (e.key === 'ArrowRight') show(1);
+      }
+    });
+
+    toggleBtn.addEventListener('click', async function(){
+      expanded = !expanded;
+      if (expanded){ await discoverBatch(scanned + 60); }
+      render();
+    });
+
+    (async function init(){
+      await discoverBatch(40);
+      if (!videoList.length){
+        document.getElementById('videos').classList.add('hidden');
+        return;
+      }
+      render();
+    })();
+  })();
 </script>
 </body>
 </html>
