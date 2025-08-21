@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Filipe Rocha — CGI Portfolio</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- NEW: EXIF/IPTC/XMP metadata parser for images -->
-  <script src="https://unpkg.com/exifr/dist/full.umd.js"></script>
   <style>
     html{scroll-behavior:smooth}
     body{background:#0a0f12;color:#fff;margin:0}
@@ -18,7 +16,7 @@
     #fx{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:0}
     .btn{border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); padding:.5rem 1rem; border-radius:.75rem}
     .btn:hover{background:rgba(255,255,255,.12)}
-    /* Thumbnails: 60% desaturation, fade to full color on hover */
+    /* Thumbnails: 80%→30% desaturation on hover */
     .thumb{
       filter: grayscale(80%);
       transition: transform .5s ease, filter .35s ease, opacity .35s ease;
@@ -76,25 +74,19 @@
   <!-- PORTFOLIO (Images) -->
   <section id="portfolio" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
     <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Portfolio</h2>
-
     <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
-
     <div id="galleryActions" class="mt-8 flex justify-center">
       <button id="toggleImages" class="btn">Show more</button>
     </div>
-    <!-- (Image Lightbox was moved to end of body to ensure top-most stacking) -->
   </section>
 
   <!-- VIDEOS -->
   <section id="videos" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
     <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Videos</h2>
-
     <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
-
     <div id="videoActions" class="mt-8 flex justify-center">
       <button id="toggleVideos" class="btn">Show more</button>
     </div>
-
     <!-- Video Lightbox -->
     <div id="vidLightbox" class="fixed inset-0 z-[9999] hidden">
       <div class="absolute inset-0 bg-black/90"></div>
@@ -149,7 +141,7 @@
     </div>
   </footer>
 
-  <!-- ===== Image Lightbox at end to guarantee top-most stacking ===== -->
+  <!-- Image Lightbox (kept at end for top-most stacking) -->
   <div id="lightbox" class="fixed inset-0 hidden" style="z-index:2147483647;">
     <div class="absolute inset-0 bg-black/90"></div>
     <div class="relative h-full w-full flex items-center justify-center p-4">
@@ -157,8 +149,6 @@
       <button id="lbPrev" class="absolute left-4 top-1/2 -translate-y-1/2 btn">⟵ Prev</button>
       <button id="lbNext" class="absolute right-4 top-1/2 -translate-y-1/2 btn">Next ⟶</button>
       <img id="lbImg" src="" alt="" class="block max-w-[92vw] max-h-[90vh] object-contain rounded-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]" />
-      <!-- NEW: bottom-left icon strip driven by metadata tags -->
-      <div id="lbIconStrip" class="absolute bottom-4 left-4 flex gap-2"></div>
     </div>
   </div>
 
@@ -327,7 +317,7 @@
     const vid=document.getElementById('heroVideo'); if (vid){ const p=vid.play(); if (p && p.catch) p.catch(()=>vid.remove()); }
   })();
 
-  // =================== TOOLS ICONS LOADER (tooltips moved up slightly) ===================
+  // =================== TOOLS ICONS LOADER (tooltips) ===================
   const ICON_MAX = 12;
   const ICON_EXTS = ["svg","png","webp","jpg","jpeg"];
   const ICON_LABELS = {
@@ -378,122 +368,18 @@
     }
   })();
 
-  // ---------- Utilities shared with metadata UI ----------
-  function filenameFromURL(url){
-    try{ return decodeURIComponent(url.split('/').pop()) || url; }catch{ return url; }
-  }
-  function formatBytes(bytes){
-    if (!Number.isFinite(bytes) || bytes < 0) return "—";
-    const u=["B","KB","MB","GB","TB"]; let i=0,n=bytes;
-    while(n>=1024 && i<u.length-1){ n/=1024; i++; }
-    return `${n.toFixed(n<10&&i>0?1:0)} ${u[i]}`;
-  }
-  function normalizeTags(raw){
-    if (!raw) return [];
-    const arr = Array.isArray(raw) ? raw : [raw];
-    const out = [];
-    for (const v of arr){
-      if (!v) continue;
-      const parts = String(v).split(/[;,|]/);
-      for (let p of parts){
-        p = p.trim();
-        if (p) out.push(p);
-      }
-    }
-    return out;
-  }
-
-  // ========== Tag → Icon mapping for fullscreen image overlay ==========
-  const TAG_TO_ICON = {
-    // 1: 3ds Max
-    "3ds max":1, "3dsmax":1, "autodesk 3ds max":1, "max":1,
-    // 2: V-Ray
-    "v-ray":2, "vray":2, "v ray":2,
-    // 3: Corona
-    "corona":3, "corona renderer":3,
-    // 4: Vantage
-    "vantage":4, "chaos vantage":4,
-    // 5: Anima
-    "anima":5, "axyz anima":5,
-    // 6: Forest Pack
-    "forest pack":6, "forestpack":6, "itoo forest":6,
-    // 7: RailClone
-    "railclone":7, "rail clone":7, "itoo railclone":7,
-    // 8: Photoshop
-    "photoshop":8, "adobe photoshop":8, "ps":8,
-    // 9: After Effects
-    "after effects":9, "after-effects":9, "adobe after effects":9, "ae":9,
-    // 10: Premiere
-    "premiere pro":10, "premiere":10, "adobe premiere":10, "pr":10,
-    // 11: DaVinci Resolve
-    "davinci resolve":11, "resolve":11,
-    // 12: Unreal
-    "unreal engine":12, "unreal":12, "ue":12, "ue5":12
-  };
-
-  const iconSrcCache = {}; // n -> resolved icon src
-  function getIconByIndex(n){
-    return new Promise(res=>{
-      if (iconSrcCache[n]) return res(iconSrcCache[n]);
-      resolveIcon(n, (src)=>{ if (src) iconSrcCache[n] = src; res(src||null); });
-    });
-  }
-
-  async function extractImageTags(url){
-    // Read EXIF/IPTC/XMP; best over http(s)
-    try{
-      const data = await exifr.parse(url, { iptc:true, xmp:true, exif:true, ifd0:true });
-      const raw = normalizeTags([
-        data?.Keywords,
-        data?.Subject,
-        data?.tags,
-        data?.XPKeywords,
-        data?.hierarchicalSubject,
-        data?.dc?.subject
-      ]);
-      return raw;
-    }catch{ return []; }
-  }
-
-  function mapTagsToIconIndices(tags){
-    const set = new Set();
-    for (const raw of tags){
-      const k = raw.toLowerCase().replace(/\s+/g,' ').trim();
-      if (TAG_TO_ICON[k]) set.add(TAG_TO_ICON[k]);
-      if (/^v[\s-]?ray$/.test(k)) set.add(2); // loose match
-      if (/^ue ?\d*/.test(k)) set.add(12);    // UE, UE5, etc.
-    }
-    return Array.from(set);
-  }
-
-  async function populateImageIcons(url){
-    const strip = document.getElementById('lbIconStrip');
-    if (!strip) return;
-    strip.innerHTML = "";
-    const tags = await extractImageTags(url);
-    const indices = mapTagsToIconIndices(tags);
-    for (const n of indices){
-      const src = await getIconByIndex(n);
-      if (!src) continue;
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = ICON_LABELS[n] || `Tool ${n}`;
-      img.title = img.alt;
-      img.className = "h-6 w-6 object-contain opacity-90";
-      strip.appendChild(img);
-    }
-  }
-
-  // =================== IMAGE GALLERY (auto-discover numbered files) ===================
+  // =================== IMAGE GALLERY (thumbs for grid, full-res in lightbox) ===================
   const IMG_EXTS = ["jpg","jpeg","png","webp"];
-  const IMG_MAX  = 200;           // upper bound for probing
-  const PAGE_SIZE = 6;            // 2 rows (lg: 3 columns)
+  const IMG_MAX  = 200;
+  const PAGE_SIZE = 6; // 2 rows when collapsed
   const galleryEl = document.getElementById('gallery');
   const toggleImagesBtn = document.getElementById('toggleImages');
-  const imageList = [];           // discovered sources
-  let imagesExpanded = false;     // collapsed by default
+  let imagesExpanded = false;
 
-  function tryLoadImage(src){
+  // Each entry: { thumb: "Media/images/thumbs/01.jpg", full: "Media/images/01.jpg" }
+  const imageList = [];
+
+  function probe(src){
     return new Promise(res=>{
       const im = new Image();
       im.onload = ()=>res(true);
@@ -504,28 +390,43 @@
 
   async function discoverImages(){
     const found = [];
-    // Only numbered files; Profile.jpg is ignored naturally
     for (let i=1; i<=IMG_MAX; i++){
       const n2 = i.toString().padStart(2,'0');
+      let added = false;
       for (const ext of IMG_EXTS){
-        const candidate = `Media/images/${n2}.${ext}`;
+        const fullPad = `Media/images/${n2}.${ext}`;
+        const fullNum = `Media/images/${i}.${ext}`;
+        const thPad   = `Media/images/thumbs/${n2}.${ext}`;
+        const thNum   = `Media/images/thumbs/${i}.${ext}`;
+
         /* eslint-disable no-await-in-loop */
-        if (await tryLoadImage(candidate)) { found.push(candidate); break; }
-        const alt = `Media/images/${i}.${ext}`; // optionally support non-padded numbers
-        if (await tryLoadImage(alt))           { found.push(alt); break; }
+        if (await probe(fullPad)){
+          const thumb = (await probe(thPad)) ? thPad : (await probe(thNum)) ? thNum : fullPad;
+          found.push({ thumb, full: fullPad });
+          added = true; break;
+        }
+        if (await probe(fullNum)){
+          const thumb = (await probe(thNum)) ? thNum : (await probe(thPad)) ? thPad : fullNum;
+          found.push({ thumb, full: fullNum });
+          added = true; break;
+        }
       }
+      // keep scanning through gaps so you can add/remove freely
+      if (!added) { /* nothing for this index, continue */ }
     }
     return found;
   }
 
-  function imgCard(src, idx){
+  function imgCard(entry, idx){
     const btn = document.createElement('button');
     btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
     btn.setAttribute('data-index', idx);
 
     const img = document.createElement('img');
-    img.src = src;
+    img.src = entry.thumb;
     img.loading = "lazy";
+    img.decoding = "async";
+    img.fetchPriority = "low";
     img.alt = "";
     img.className = "thumb h-full w-full object-cover";
     img.onerror = () => { btn.remove(); };
@@ -546,15 +447,16 @@
 
   function renderImages(){
     galleryEl.innerHTML = "";
-    const toShow = imagesExpanded ? imageList.length : Math.min(PAGE_SIZE, imageList.length);
+    const total = imageList.length;
+    const toShow = imagesExpanded ? total : Math.min(PAGE_SIZE, total);
     for (let i=0; i<toShow; i++){
       galleryEl.appendChild(imgCard(imageList[i], i));
     }
     toggleImagesBtn.textContent = imagesExpanded ? "Show less" : "Show more";
-    document.getElementById('galleryActions').classList.toggle('hidden', imageList.length <= PAGE_SIZE);
+    document.getElementById('galleryActions').classList.toggle('hidden', total <= PAGE_SIZE);
   }
 
-  // Image lightbox (moved to end of <body>)
+  // Image lightbox (top-most)
   const lb = document.getElementById('lightbox');
   const lbImg = document.getElementById('lbImg');
   const lbClose = document.getElementById('lbClose');
@@ -565,18 +467,14 @@
   function openLightbox(e){
     const btn = e.currentTarget;
     currentIndex = parseInt(btn.getAttribute('data-index'), 10) || 0;
-    lbImg.src = imageList[currentIndex];
+    lbImg.src = imageList[currentIndex].full;
     lb.classList.remove('hidden');
     document.body.style.overflow = "hidden";
-    // NEW: populate icons based on metadata tags
-    populateImageIcons(lbImg.src);
   }
   function closeLightbox(){ lb.classList.add('hidden'); document.body.style.overflow = ""; }
   function show(delta){
     currentIndex = (currentIndex + delta + imageList.length) % imageList.length;
-    lbImg.src = imageList[currentIndex];
-    // NEW: update icons on navigation
-    populateImageIcons(lbImg.src);
+    lbImg.src = imageList[currentIndex].full;
   }
   lbClose.addEventListener('click', closeLightbox);
   lb.addEventListener('click', (e)=>{ if(e.target === lb || e.target.classList.contains('bg-black/90')) closeLightbox(); });
@@ -589,10 +487,7 @@
     if (e.key === 'ArrowRight') show(1);
   });
 
-  toggleImagesBtn.addEventListener('click', ()=>{
-    imagesExpanded = !imagesExpanded;
-    renderImages();
-  });
+  toggleImagesBtn.addEventListener('click', ()=>{ imagesExpanded = !imagesExpanded; renderImages(); });
 
   (async function initImages(){
     const found = await discoverImages();
@@ -604,7 +499,7 @@
     renderImages();
   })();
 
-  // =================== VIDEOS GALLERY (auto-discover numbered files) ===================
+  // =================== VIDEOS (unchanged) ===================
   const videoGrid = document.getElementById('videoGrid');
   const toggleVideosBtn = document.getElementById('toggleVideos');
   const VIDEO_MAX = 200;
@@ -637,7 +532,6 @@
         const alt = `Media/Videos/${i}.${ext}`; // optional non-padded
         if (await canPlayVideo(alt)) { found.push(alt); break; }
       }
-      // keep scanning even if gaps exist
     }
     return found;
   }
@@ -719,10 +613,7 @@
     }
   });
 
-  toggleVideosBtn.addEventListener('click', ()=>{
-    videosExpanded = !videosExpanded;
-    renderVideos();
-  });
+  toggleVideosBtn.addEventListener('click', ()=>{ videosExpanded = !videosExpanded; renderVideos(); });
 
   (async function initVideos(){
     const found = await discoverVideos();
