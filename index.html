@@ -25,7 +25,6 @@
     .thumb{ filter:grayscale(80%); transition:transform .5s ease, filter .35s ease, opacity .35s ease; }
     .group:hover .thumb, .group.active .thumb{ filter:grayscale(30%); transform:scale(1.04); }
     #lightbox.hidden, #vidLightbox.hidden { display: none; }
-    .tool-badge{border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.05); border-radius:.65rem; padding:.25rem .6rem; font-size:.85rem; color:rgba(255,255,255,.9)}
 
     /* Respect reduced motion preferences */
     @media (prefers-reduced-motion: reduce) {
@@ -44,7 +43,7 @@
     <div class="relative z-10 flex h-full items-center justify-center">
       <div class="mx-4 w-full max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-10 text-center backdrop-blur-xl shadow-[0_0_80px_rgba(0,0,0,0.45)]">
         <h1 class="text-4xl md:text-6xl font-semibold tracking-tight">Filipe Rocha</h1>
-        <p class="mt-3 text-lg md:text-xl text-white/80">Senior CGI Visualiser</p>
+        <p class="mt-3 text-lg md:text-xl text-white/80">Senior CGI Visualisert</p>
         <div class="mt-8 flex items-center justify-center gap-3">
           <a href="#portfolio" class="rounded-xl bg-cyan-400/20 px-5 py-2.5 text-base border border-cyan-300/30 hover:bg-cyan-300/30">View My Work</a>
           <a href="#contact" class="rounded-xl bg-white/5 px-5 py-2.5 text-base border border-white/10 hover:bg-white/10">Contact</a>
@@ -68,48 +67,8 @@
           I’m a CGI artist experienced in design and architectural visualization for marketing.
           I deliver photo-real stills and animations, covering modeling, materials, lighting, rendering, compositing and editing.
         </div>
-
-        <!-- TOOLS & PIPELINE (added grouping, kept your icon grid) -->
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-          <h3 class="mb-4 font-medium text-white/90">Tools &amp; Pipeline <span class="text-white/50 text-sm">(used in the work below)</span></h3>
-
-          <!-- Grouped badges -->
-          <div class="space-y-4 mb-5">
-            <div>
-              <h4 class="text-sm font-semibold text-cyan-300/80 mb-2">Modeling &amp; Rendering</h4>
-              <div class="flex flex-wrap gap-2">
-                <span class="tool-badge">3ds Max</span>
-                <span class="tool-badge">V-Ray</span>
-                <span class="tool-badge">Corona</span>
-                <span class="tool-badge">Chaos Vantage</span>
-              </div>
-            </div>
-            <div>
-              <h4 class="text-sm font-semibold text-cyan-300/80 mb-2">Procedural / Crowd</h4>
-              <div class="flex flex-wrap gap-2">
-                <span class="tool-badge">Forest Pack</span>
-                <span class="tool-badge">RailClone</span>
-                <span class="tool-badge">Chaos Anima</span>
-              </div>
-            </div>
-            <div>
-              <h4 class="text-sm font-semibold text-cyan-300/80 mb-2">Post-Production</h4>
-              <div class="flex flex-wrap gap-2">
-                <span class="tool-badge">Photoshop</span>
-                <span class="tool-badge">After Effects</span>
-                <span class="tool-badge">Premiere Pro</span>
-                <span class="tool-badge">DaVinci Resolve</span>
-              </div>
-            </div>
-            <div>
-              <h4 class="text-sm font-semibold text-cyan-300/80 mb-2">Real-Time</h4>
-              <div class="flex flex-wrap gap-2">
-                <span class="tool-badge">Unreal Engine</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Your original icon grid (kept) -->
+          <h3 class="mb-4 font-medium text-white/90">Tools</h3>
           <div id="toolIcons" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3"></div>
           <p id="toolHint" class="mt-3 text-xs text-white/50 hidden">Place icons as <code>Media/icons/1.png</code>, <code>2.png</code>, …</p>
         </div>
@@ -692,34 +651,20 @@
       current = parseInt(btn.getAttribute('data-vidindex'), 10) || 0;
 
       const filename = files[current];
-
-      // FIX: fully reset player before loading the clicked video
-      vlbVideo.pause();
       vlbVideo.innerHTML = "";
-      vlbVideo.removeAttribute("src");
-      vlbVideo.load();
-
       vlbVideo.poster = `Media/videos/${filename.replace(/\.\w+$/, '.jpg')}`;
 
-      const webm = document.createElement('source'); 
-      webm.src = `Media/videos/${filename.replace(/\.mp4$/i, '.webm')}`; 
-      webm.type = "video/webm";
-      const mp4  = document.createElement('source'); 
-      mp4.src  = `Media/videos/${filename}`; 
-      mp4.type = "video/mp4";
-      vlbVideo.appendChild(webm); 
-      vlbVideo.appendChild(mp4);
+      const webm = document.createElement('source'); webm.src = `Media/videos/${filename.replace(/\.mp4$/i, '.webm')}`; webm.type = "video/webm";
+      const mp4  = document.createElement('source'); mp4.src  = `Media/videos/${filename}`; mp4.type = "video/mp4";
+      vlbVideo.appendChild(webm); vlbVideo.appendChild(mp4);
 
       vlb.classList.remove('hidden');
       vlb.setAttribute('aria-hidden','false');
       vlb.setAttribute('role','dialog');
       vlb.setAttribute('aria-modal','true');
       document.body.style.overflow = "hidden";
-
       vlbVideo.currentTime = 0;
-      vlbVideo.load();              // force new source to load
       vlbVideo.play().catch(()=>{});
-
       vlbClose.focus();
     }
 
