@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Filipe Rocha — CGI Portfolio</title>
 
-  <!-- Tailwind note:
-       For production, replace this CDN helper with your compiled CSS.
-       Example: <link rel="stylesheet" href="assets/tailwind.build.css">
-       Build: npx tailwindcss -i input.css -o assets/tailwind.build.css --minify -->
+  <!-- Tailwind (unchanged). Replace with compiled CSS when ready. -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Favicon: use your first tools icon if present (quietly ignored if missing) -->
+  <!-- Favicon (unchanged) -->
   <link rel="icon" type="image/png" href="Media/icons/1.png" />
 
   <style>
@@ -26,16 +23,17 @@
     .btn{border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); padding:.5rem 1rem; border-radius:.75rem}
     .btn:hover{background:rgba(255,255,255,.12)}
     .thumb{ filter:grayscale(80%); transition:transform .5s ease, filter .35s ease, opacity .35s ease; }
-    .group:hover .thumb{ filter:grayscale(30%); transform:scale(1.04); }
-    /* Ensure lightboxes & their controls are hidden until opened */
+    /* Hover visuals also apply when the card is 'active' (used for mobile centered item) */
+    .group:hover .thumb, .group.active .thumb{ filter:grayscale(30%); transform:scale(1.04); }
+    /* Keep lightboxes hidden until opened */
     #lightbox.hidden, #vidLightbox.hidden { display: none; }
   </style>
 </head>
 <body class="min-h-screen selection:bg-cyan-300/20">
-  <!-- Background particles -->
+  <!-- Background particles (unchanged visual) -->
   <canvas id="fx"></canvas>
 
-  <!-- HERO -->
+  <!-- HERO (unchanged) -->
   <section class="relative z-10 h-[90svh] overflow-hidden">
     <video id="heroVideo" class="absolute inset-0 h-full w-full object-cover opacity-55" src="https://cdn.coverr.co/videos/coverr-modern-interior-8050/1080p.mp4" autoplay muted playsinline loop style="z-index:0"></video>
     <div class="relative z-10 flex h-full items-center justify-center">
@@ -51,13 +49,12 @@
     <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60"></div>
   </section>
 
-  <!-- ABOUT -->
+  <!-- ABOUT (unchanged content) -->
   <section id="about" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
     <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">About Me</h2>
     <div class="grid gap-8 md:grid-cols-[1fr_1.6fr] items-start">
       <div class="flex justify-center">
         <div class="relative w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(160,240,255,0.25)]">
-          <!-- src resolved in JS to handle case/extension variations -->
           <img id="profileImg" src="" alt="Filipe Rocha" class="h-full w-full object-cover" />
         </div>
       </div>
@@ -75,7 +72,7 @@
     </div>
   </section>
 
-  <!-- PORTFOLIO -->
+  <!-- PORTFOLIO (unchanged markup; behavior tweaked below) -->
   <section id="portfolio" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
     <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Portfolio</h2>
     <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
@@ -84,7 +81,7 @@
     </div>
   </section>
 
-  <!-- VIDEOS -->
+  <!-- VIDEOS (unchanged markup; behavior tweaked below) -->
   <section id="videos" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
     <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Videos</h2>
     <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
@@ -102,7 +99,7 @@
     </div>
   </section>
 
-  <!-- RESUME -->
+  <!-- RESUME (unchanged) -->
   <section id="resume" class="relative z-10 mx-auto max-w-6xl px-6 pb-24">
     <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Resume</h2>
     <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
@@ -125,7 +122,7 @@
     </div>
   </section>
 
-  <!-- CONTACT -->
+  <!-- CONTACT (unchanged) -->
   <footer id="contact" class="relative z-10 border-t border-white/10 bg-white/5">
     <div class="mx-auto max-w-6xl px-6 py-12">
       <div class="grid gap-4 md:grid-cols-2 items-center">
@@ -144,7 +141,7 @@
     </div>
   </footer>
 
-  <!-- IMAGE LIGHTBOX -->
+  <!-- IMAGE LIGHTBOX (unchanged) -->
   <div id="lightbox" class="fixed inset-0 hidden" style="z-index:2147483647;" aria-hidden="true">
     <div class="absolute inset-0 bg-black/90"></div>
     <div class="relative h-full w-full flex items-center justify-center p-4">
@@ -156,10 +153,10 @@
   </div>
 
 <script>
-  // Year
+  // Year (unchanged)
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  /* ================= BACKGROUND PARTICLES (unchanged) ================= */
+  /* ================= BACKGROUND PARTICLES (unchanged behavior) ================= */
   (function(){
     var canvas = document.getElementById('fx');
     var ctx = canvas.getContext('2d');
@@ -330,12 +327,11 @@
     init();
   })();
 
-  /* ================= SMALL HELPERS ================= */
+  /* ================= SMALL HELPERS (unchanged) ================= */
   async function headExists(url){
     try { const r = await fetch(url, { method: 'HEAD', cache: 'no-store' }); return r.ok; }
     catch { return false; }
   }
-
   function probeImage(url){
     return new Promise(function(res){
       var im = new Image();
@@ -345,7 +341,7 @@
     });
   }
 
-  /* ================= PROFILE IMAGE (case/extension tolerant) ================= */
+  /* ================= PROFILE (unchanged logic) ================= */
   (async function(){
     var candidates = [
       "Media/images/Profile.jpg","Media/images/Profile.JPG","Media/images/Profile.jpeg","Media/images/Profile.JPEG",
@@ -353,56 +349,46 @@
     ];
     var src = "";
     for (var i=0;i<candidates.length;i++){
-      // eslint-disable-next-line no-await-in-loop
       if (await probeImage(candidates[i])) { src = candidates[i]; break; }
     }
-    if (!src) src = "Media/images/01.jpg"; // graceful fallback
-    var el = document.getElementById('profileImg');
-    if (el) el.src = src;
+    if (!src) src = "Media/images/01.jpg";
+    var el = document.getElementById('profileImg'); if (el) el.src = src;
   })();
 
-  /* ================= TOOLS ICONS (PNG only, HEAD-checked) ================= */
+  /* ================= TOOLS (unchanged behavior) ================= */
   (function(){
     var ICON_MAX = 12;
-    var ICON_EXTS = ["png","PNG"]; // icons are PNG only (case tolerant)
+    var ICON_EXTS = ["png","PNG"];
     var ICON_LABELS = {
       1: "3ds Max", 2: "V-Ray", 3: "Corona", 4: "Vantage", 5: "Anima", 6: "Forest Pack",
       7: "RailClone", 8: "Photoshop", 9: "After Effects", 10: "Premiere Pro", 11: "DaVinci Resolve", 12: "Unreal Engine"
     };
     var toolIconsEl = document.getElementById('toolIcons');
-
     async function findIcon(n){
       for (var i=0;i<ICON_EXTS.length;i++){
         var src = "Media/icons/" + n + "." + ICON_EXTS[i];
-        // eslint-disable-next-line no-await-in-loop
         if (await headExists(src)) return src;
       }
       return null;
     }
-
     (async function load(){
       var any=false;
       for (var n=1; n<=ICON_MAX; n++){
-        // eslint-disable-next-line no-await-in-loop
         var src = await findIcon(n);
         if (src){
           any=true;
           var label = ICON_LABELS[n] || ("Tool " + n);
           var wrap = document.createElement('div');
           wrap.className = "group relative flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 transition";
-
           var img = document.createElement('img');
           img.src = src; img.alt = label; img.className = "h-6 w-6 object-contain";
           wrap.appendChild(img);
-
           var tip = document.createElement('div');
           tip.className = "pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/80 px-2 py-1 text-xs text-white/90 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition";
           tip.textContent = label;
-
           var arrow = document.createElement('span');
           arrow.className = "absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-l border-t border-white/10 bg-black/80";
           tip.appendChild(arrow);
-
           wrap.appendChild(tip);
           toolIconsEl.appendChild(wrap);
         }
@@ -411,7 +397,7 @@
     })();
   })();
 
-  /* ================= IMAGES (from Media/images/List.txt, no 404 spam) ================= */
+  /* ================= IMAGES (manifest-driven; unchanged except for 'active' support) ================= */
   (async function() {
     const galleryEl = document.getElementById('gallery');
     const toggleBtn = document.getElementById('toggleImages');
@@ -424,16 +410,10 @@
       const res = await fetch("Media/images/List.txt", { cache: "no-store" });
       if (!res.ok) throw new Error("List.txt not found");
       const text = await res.text();
-      // one filename per line; drop blanks and 'Profile.jpg' / 'profile.jpeg' etc.
-      return text
-        .split(/\r?\n/)
-        .map(s => s.trim())
-        .filter(Boolean)
+      return text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
         .filter(f => !/^profile\.(?:jpe?g)$/i.test(f));
     }
-
     async function buildEntries(files){
-      // Prefer a matching thumb if it exists; otherwise use the full image.
       const checks = files.map(async f => {
         const full = `Media/images/${f}`;
         const thumbPath = `Media/images/thumbs/${f}`;
@@ -449,7 +429,7 @@
       btn.setAttribute('data-index', idx);
 
       const img = document.createElement('img');
-      img.src = entry.thumb;                      // validated via HEAD
+      img.src = entry.thumb;
       img.loading = "lazy";
       img.decoding = "async";
       img.className = "thumb h-full w-full object-cover";
@@ -464,9 +444,7 @@
       badgeSpan.textContent = "View";
       badge.appendChild(badgeSpan);
 
-      btn.appendChild(img);
-      btn.appendChild(glow);
-      btn.appendChild(badge);
+      btn.appendChild(img); btn.appendChild(glow); btn.appendChild(badge);
       btn.addEventListener('click', openLightbox);
       return btn;
     }
@@ -477,9 +455,10 @@
       for (let i = 0; i < toShow; i++) galleryEl.appendChild(makeCard(entries[i], i));
       toggleBtn.textContent = expanded ? "Show less" : "Show more";
       document.getElementById('galleryActions').classList.toggle('hidden', entries.length <= PAGE_SIZE);
+      refreshActiveCentered(); // ensure correct 'active' after (re)render
     }
 
-    // Lightbox
+    // Image lightbox (unchanged)
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lbImg');
     const lbClose = document.getElementById('lbClose');
@@ -515,9 +494,9 @@
 
     // Init
     try {
-      const files = await loadListTxt();      // reads Media/images/List.txt
+      const files = await loadListTxt();
       if (!files.length) { document.getElementById('portfolio').classList.add('hidden'); return; }
-      entries = await buildEntries(files);    // HEAD once per thumb (no 404 logs)
+      entries = await buildEntries(files);
       render();
     } catch (err) {
       console.warn('[Images] ' + err.message);
@@ -525,10 +504,10 @@
     }
   })();
 
-  /* ================= VIDEOS =================
-     Optional: if you create Media/videos/List.txt (one filename per line),
-     this will use it; otherwise it hides the Videos section gracefully.
-  ================================================= */
+  /* ================= VIDEOS (manifest-driven) =================
+     Change: previews play on HOVER only (desktop),
+             and on MOBILE 1-column the centered card auto-previews.
+  ============================================================= */
   (async function(){
     const videoGrid = document.getElementById('videoGrid');
     const toggleBtn = document.getElementById('toggleVideos');
@@ -538,7 +517,6 @@
     let expanded = false;
 
     async function loadListTxt() {
-      // Try to fetch a manifest; if missing, throw and we’ll hide the section quietly.
       const res = await fetch("Media/videos/List.txt", { cache: "no-store" });
       if (!res.ok) throw new Error("Videos List.txt not found");
       const text = await res.text();
@@ -553,8 +531,15 @@
       const vid = document.createElement('video');
       vid.src = src;
       vid.className = "thumb h-full w-full object-cover opacity-90";
-      vid.muted = true; vid.loop = true; vid.playsInline = true;
-      vid.oncanplay = ()=>{ vid.play().catch(()=>{}); };
+      vid.muted = true; vid.playsInline = true;
+      vid.preload = "metadata";     // <-- no eager buffering; no auto-play
+      // Desktop preview on hover only
+      btn.addEventListener('mouseenter', ()=>{
+        if (window.matchMedia('(hover: hover)').matches) { vid.play().catch(()=>{}); }
+      });
+      btn.addEventListener('mouseleave', ()=>{
+        vid.pause(); try { vid.currentTime = 0; } catch(_) {}
+      });
 
       const badge = document.createElement('div');
       badge.className = "absolute inset-0 grid place-items-center pointer-events-none";
@@ -579,8 +564,10 @@
       }
       toggleBtn.textContent = expanded ? "Show less" : "Show more";
       document.getElementById('videoActions').classList.toggle('hidden', files.length <= PAGE);
+      refreshActiveCentered(); // ensure correct 'active' after (re)render
     }
 
+    // Lightbox (unchanged except autoplay when opened)
     const vlb = document.getElementById('vidLightbox');
     const vlbVideo = document.getElementById('vlbVideo');
     const vlbClose = document.getElementById('vlbClose');
@@ -630,7 +617,7 @@
 
     // Init
     try {
-      files = await loadListTxt(); // expects Media/videos/List.txt, one filename per line (e.g., 01.mp4)
+      files = await loadListTxt(); // expects Media/videos/List.txt
       if (!files.length){
         document.getElementById('videos').classList.add('hidden');
         return;
@@ -640,6 +627,90 @@
       console.warn('[Videos] ' + err.message);
       document.getElementById('videos').classList.add('hidden');
     }
+  })();
+
+  /* ================= CENTERED-ITEM "ACTIVE" LOGIC =================
+     On mobile (<= 639px, 1-column grids), the single item nearest the
+     viewport center in each grid gets class 'active'. If it's a video
+     card, we also auto-preview it; all other videos are paused/reset.
+  ================================================================== */
+  (function(){
+    const gallery = document.getElementById('gallery');
+    const videoGrid = document.getElementById('videoGrid');
+
+    let ticking = false;
+
+    function isOneColumn(){ return window.matchMedia('(max-width: 639px)').matches; }
+
+    function setActive(container){
+      if (!container) return;
+      const items = Array.from(container.children);
+      if (!items.length) return;
+
+      // Clear previous active classes
+      items.forEach(el => el.classList.remove('active'));
+
+      // Find item whose center is closest to viewport center
+      const vy = window.innerHeight / 2;
+      let best = null, bestDist = Infinity;
+      for (const el of items){
+        const r = el.getBoundingClientRect();
+        if (r.height <= 0 || r.bottom < 0 || r.top > window.innerHeight) continue;
+        const cy = (r.top + r.bottom) / 2;
+        const d = Math.abs(cy - vy);
+        if (d < bestDist){ bestDist = d; best = el; }
+      }
+      if (!best) return;
+
+      best.classList.add('active');
+
+      // If this grid is the videos grid, auto-preview the centered one and pause others.
+      if (container === videoGrid){
+        for (const el of items){
+          const v = el.querySelector('video');
+          if (!v) continue;
+          if (el === best){
+            v.play().catch(()=>{});
+          } else {
+            v.pause(); try { v.currentTime = 0; } catch(_) {}
+          }
+        }
+      }
+    }
+
+    function refreshActiveCentered(){
+      if (!isOneColumn()){
+        // On wider screens, remove 'active' and ensure videos only play on hover.
+        [gallery, videoGrid].forEach(container=>{
+          if (!container) return;
+          const items = Array.from(container.children);
+          items.forEach(el => {
+            el.classList.remove('active');
+            const v = el.querySelector('video');
+            if (v){ v.pause(); try { v.currentTime = 0; } catch(_) {} }
+          });
+        });
+        return;
+      }
+      setActive(gallery);
+      setActive(videoGrid);
+    }
+
+    function onScrollOrResize(){
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(()=>{
+        refreshActiveCentered();
+        ticking = false;
+      });
+    }
+
+    window.addEventListener('scroll', onScrollOrResize, { passive:true });
+    window.addEventListener('resize', onScrollOrResize, { passive:true });
+    window.addEventListener('orientationchange', onScrollOrResize);
+
+    // Expose so renderers can call after DOM updates
+    window.refreshActiveCentered = refreshActiveCentered;
   })();
 </script>
 </body>
