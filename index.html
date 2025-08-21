@@ -69,6 +69,44 @@
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
           <h3 class="mb-4 font-medium text-white/90">Tools</h3>
+
+          <!-- Added: grouped pipeline badges (non-destructive) -->
+          <div class="space-y-4 mb-5">
+            <div>
+              <h4 class="text-sm font-semibold text-cyan-300/80 mb-2">Modeling &amp; Rendering</h4>
+              <div class="flex flex-wrap gap-2">
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">3ds Max</span>
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">V-Ray</span>
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">Corona</span>
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">Chaos Vantage</span>
+              </div>
+            </div>
+            <div>
+              <h4 class="text-sm font-semibold text-cyan-300/80 mb-2">Procedural / Crowd</h4>
+              <div class="flex flex-wrap gap-2">
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">Forest Pack</span>
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">RailClone</span>
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">Chaos Anima</span>
+              </div>
+            </div>
+            <div>
+              <h4 class="text-sm font-semibold text-cyan-300/80 mb-2">Post-Production</h4>
+              <div class="flex flex-wrap gap-2">
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">Photoshop</span>
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">After Effects</span>
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">Premiere Pro</span>
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">DaVinci Resolve</span>
+              </div>
+            </div>
+            <div>
+              <h4 class="text-sm font-semibold text-cyan-300/80 mb-2">Real-Time</h4>
+              <div class="flex flex-wrap gap-2">
+                <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs">Unreal Engine</span>
+              </div>
+            </div>
+          </div>
+          <!-- /Added -->
+
           <div id="toolIcons" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3"></div>
           <p id="toolHint" class="mt-3 text-xs text-white/50 hidden">Place icons as <code>Media/icons/1.png</code>, <code>2.png</code>, …</p>
         </div>
