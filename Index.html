@@ -319,7 +319,7 @@
 
   // =================== TOOLS ICONS LOADER (tooltips) ===================
   const ICON_MAX = 12;
-  const ICON_EXTS = ["svg","png","webp","jpg","jpeg"];
+  const ICON_EXTS = ["svg","png","webp","jpg","jpeg","SVG","PNG","WEBP","JPG","JPEG"];
   const ICON_LABELS = {
     1: "3ds Max", 2: "V-Ray", 3: "Corona", 4: "Vantage", 5: "Anima", 6: "Forest Pack",
     7: "RailClone", 8: "Photoshop", 9: "After Effects", 10: "Premiere Pro", 11: "DaVinci Resolve", 12: "Unreal Engine",
@@ -369,7 +369,7 @@
   })();
 
   // =================== IMAGE GALLERY (thumbs for grid, full-res in lightbox) ===================
-  const IMG_EXTS = ["jpg","jpeg","png","webp"];
+  const IMG_EXTS = ["jpg","jpeg","png","webp","JPG","JPEG","PNG","WEBP"]; // case-insensitive
   const IMG_MAX  = 200;
   const PAGE_SIZE = 6; // 2 rows when collapsed
   const galleryEl = document.getElementById('gallery');
@@ -499,11 +499,11 @@
     renderImages();
   })();
 
-  // =================== VIDEOS (unchanged) ===================
+  // =================== VIDEOS (unchanged; you said you removed them for now) ===================
   const videoGrid = document.getElementById('videoGrid');
   const toggleVideosBtn = document.getElementById('toggleVideos');
   const VIDEO_MAX = 200;
-  const VIDEO_EXTS = ["mp4","webm","mov"];  // will pick the first that exists
+  const VIDEO_EXTS = ["mp4","webm","mov","MP4","WEBM","MOV"];
   const videoList = [];
   let videosExpanded = false;
 
@@ -529,7 +529,7 @@
         const src = `Media/Videos/${n2}.${ext}`;
         /* eslint-disable no-await-in-loop */
         if (await canPlayVideo(src)) { found.push(src); break; }
-        const alt = `Media/Videos/${i}.${ext}`; // optional non-padded
+        const alt = `Media/Videos/${i}.${ext}`;
         if (await canPlayVideo(alt)) { found.push(alt); break; }
       }
     }
@@ -564,15 +564,14 @@
 
   function renderVideos(){
     videoGrid.innerHTML = "";
-    const toShow = videosExpanded ? videoList.length : Math.min(PAGE_SIZE, videoList.length);
+    const toShow = videosExpanded ? videoList.length : Math.min(6, videoList.length);
     for (let i=0; i<toShow; i++){
       videoGrid.appendChild(videoCard(videoList[i], i));
     }
     toggleVideosBtn.textContent = videosExpanded ? "Show less" : "Show more";
-    document.getElementById('videoActions').classList.toggle('hidden', videoList.length <= PAGE_SIZE);
+    document.getElementById('videoActions').classList.toggle('hidden', videoList.length <= 6);
   }
 
-  // Video lightbox
   const vlb = document.getElementById('vidLightbox');
   const vlbVideo = document.getElementById('vlbVideo');
   const vlbClose = document.getElementById('vlbClose');
