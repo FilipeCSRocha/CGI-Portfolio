@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Filipe Rocha — CGI Portfolio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- NEW: EXIF/IPTC/XMP metadata parser for images -->
+  <script src="https://unpkg.com/exifr/dist/full.umd.js"></script>
+  <style>
+    html{scroll-behavior:smooth}
+    body{background:#0a0f12;color:#fff;margin:0}
+    ::-webkit-scrollbar{width:12px;height:12px}
+    ::-webkit-scrollbar-track{background:rgba(255,255,255,.03)}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:8px}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.25)}
+    *{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) rgba(255,255,255,.05)}
+    #fx{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:0}
+    .btn{border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); padding:.5rem 1rem; border-radius:.75rem}
+    .btn:hover{background:rgba(255,255,255,.12)}
+    /* Thumbnails: 60% desaturation, fade to full color on hover */
+    .thumb{
+      filter: grayscale(80%);
+      transition: transform .5s ease, filter .35s ease, opacity .35s ease;
+    }
+    .group:hover .thumb{
+      filter: grayscale(30%);
+      transform: scale(1.04);
+    }
+  </style>
+</head>
+<body class="min-h-screen selection:bg-cyan-300/20">
+  <!-- Background particles -->
+  <canvas id="fx"></canvas>
+
+  <!-- HERO -->
+  <section class="relative z-10 h-[90svh] overflow-hidden">
+    <video id="heroVideo" class="absolute inset-0 h-full w-full object-cover opacity-55" src="https://cdn.coverr.co/videos/coverr-modern-interior-8050/1080p.mp4" autoplay muted playsinline loop style="z-index:0"></video>
+    <div class="relative z-10 flex h-full items-center justify-center">
+      <div class="mx-4 w-full max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-10 text-center backdrop-blur-xl shadow-[0_0_80px_rgba(0,0,0,0.45)]">
+        <h1 class="text-4xl md:text-6xl font-semibold tracking-tight">Filipe Rocha</h1>
+        <p class="mt-3 text-lg md:text-xl text-white/80">CGI Artist</p>
+        <div class="mt-8 flex items-center justify-center gap-3">
+          <a href="#portfolio" class="rounded-xl bg-cyan-400/20 px-5 py-2.5 text-base border border-cyan-300/30 hover:bg-cyan-300/30">View My Work</a>
+          <a href="#contact" class="rounded-xl bg-white/5 px-5 py-2.5 text-base border border-white/10 hover:bg-white/10">Contact</a>
+        </div>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60"></div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
+    <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">About Me</h2>
+    <div class="grid gap-8 md:grid-cols-[1fr_1.6fr] items-start">
+      <div class="flex justify-center">
+        <div class="relative w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(160,240,255,0.25)]">
+          <img src="Media/images/Profile.jpg" alt="Filipe Rocha" class="h-full w-full object-cover" />
+        </div>
+      </div>
+      <div class="space-y-8">
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-6 leading-relaxed text-white/85 backdrop-blur">
+          I’m a CGI artist experienced in design and architectural visualization for marketing.
+          I deliver photo-real stills and animations, covering modeling, materials, lighting, rendering, compositing and editing.
+        </div>
+        <!-- Tools (icons from Media/icons with tooltips) -->
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+          <h3 class="mb-4 font-medium text-white/90">Tools</h3>
+          <div id="toolIcons" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3"></div>
+          <p id="toolHint" class="mt-3 text-xs text-white/50 hidden">Place icons as <code>Media/icons/1.svg</code>, <code>2.png</code>, <code>3.webp</code>, etc. Mixed formats allowed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTFOLIO (Images) -->
+  <section id="portfolio" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
+    <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Portfolio</h2>
+
+    <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+
+    <div id="galleryActions" class="mt-8 flex justify-center">
+      <button id="toggleImages" class="btn">Show more</button>
+    </div>
+    <!-- (Image Lightbox was moved to end of body to ensure top-most stacking) -->
+  </section>
+
+  <!-- VIDEOS -->
+  <section id="videos" class="relative z-10 mx-auto max-w-6xl px-6 py-20">
+    <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Videos</h2>
+
+    <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+
+    <div id="videoActions" class="mt-8 flex justify-center">
+      <button id="toggleVideos" class="btn">Show more</button>
+    </div>
+
+    <!-- Video Lightbox -->
+    <div id="vidLightbox" class="fixed inset-0 z-[9999] hidden">
+      <div class="absolute inset-0 bg-black/90"></div>
+      <div class="relative h-full w-full flex items-center justify-center p-4">
+        <button id="vlbClose" class="absolute top-4 right-4 btn">✕ Close</button>
+        <button id="vlbPrev" class="absolute left-4 top-1/2 -translate-y-1/2 btn">⟵ Prev</button>
+        <button id="vlbNext" class="absolute right-4 top-1/2 -translate-y-1/2 btn">Next ⟶</button>
+        <video id="vlbVideo" src="" class="block max-w-[92vw] max-h-[90vh] rounded-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]" controls playsinline></video>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESUME -->
+  <section id="resume" class="relative z-10 mx-auto max-w-6xl px-6 pb-24">
+    <h2 class="mb-6 text-2xl md:text-3xl font-semibold tracking-tight">Resume</h2>
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+      <ul class="space-y-5">
+        <li class="grid gap-2 md:grid-cols-[1.2fr_1fr]">
+          <div>
+            <div class="text-white/95 font-medium">CGI Artist</div>
+            <div class="text-white/70 text-sm">Trident Marketing Anglia Ltd · Ipswich, UK</div>
+          </div>
+          <div class="text-white/60 text-sm md:text-right">Feb 2022 – Present</div>
+        </li>
+        <li class="grid gap-2 md:grid-cols-[1.2fr_1fr]">
+          <div>
+            <div class="text-white/95 font-medium">3D Visualiser (Freelance)</div>
+            <div class="text-white/70 text-sm">London, UK</div>
+          </div>
+          <div class="text-white/60 text-sm md:text-right">Jul 2020 – Feb 2022</div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <footer id="contact" class="relative z-10 border-t border-white/10 bg-white/5">
+    <div class="mx-auto max-w-6xl px-6 py-12">
+      <div class="grid gap-4 md:grid-cols-2 items-center">
+        <div>
+          <h3 class="text-xl font-semibold">Let’s work together</h3>
+          <p class="text-white/70">Available for freelance and collaboration.</p>
+        </div>
+        <div class="flex justify-start md:justify-end gap-3">
+          <a class="btn" href="mailto:hello@example.com">Email</a>
+          <a class="btn" href="https://www.linkedin.com/in/filipecsrocha/" target="_blank" rel="noreferrer">LinkedIn</a>
+          <a class="btn" href="#">ArtStation</a>
+          <a class="btn" href="#">Vimeo</a>
+        </div>
+      </div>
+      <p class="mt-6 text-xs text-white/50">© <span id="year"></span> Filipe Rocha. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- ===== Image Lightbox at end to guarantee top-most stacking ===== -->
+  <div id="lightbox" class="fixed inset-0 hidden" style="z-index:2147483647;">
+    <div class="absolute inset-0 bg-black/90"></div>
+    <div class="relative h-full w-full flex items-center justify-center p-4">
+      <button id="lbClose" class="absolute top-4 right-4 btn">✕ Close</button>
+      <button id="lbPrev" class="absolute left-4 top-1/2 -translate-y-1/2 btn">⟵ Prev</button>
+      <button id="lbNext" class="absolute right-4 top-1/2 -translate-y-1/2 btn">Next ⟶</button>
+      <img id="lbImg" src="" alt="" class="block max-w-[92vw] max-h-[90vh] object-contain rounded-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]" />
+      <!-- NEW: bottom-left icon strip driven by metadata tags -->
+      <div id="lbIconStrip" class="absolute bottom-4 left-4 flex gap-2"></div>
+    </div>
+  </div>
+
+<script>
+  // Year
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // =================== BACKGROUND PARTICLES (unchanged) ===================
+  const canvas = document.getElementById('fx');
+  const ctx = canvas.getContext('2d');
+  const DPR = window.devicePixelRatio || 1;
+
+  const PARTICLE_RADIUS = 6;
+  const COUNT = 12;
+  const BASE_RADIUS = 220;
+  const STIFFNESS = 15.0;
+  const DAMPING = 0.88;
+  const SWIRL = 2;
+  const LINK_DIST = 190;
+  const GRID_ALPHA = 0.055;
+  const GRID_SPACING = 96;
+  const NOISE = 180;
+  const SPAWN_MODE = 'edges';
+  const CLICK_IMPULSE = 1200;
+
+  const anchor = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.45 };
+  const mouse  = { x: anchor.x, y: anchor.y, active: false };
+  const pts = [];
+  const state = { scatter: 0.2 };
+
+  const glow = document.createElement('canvas');
+  (function buildGlow(){
+    const r = PARTICLE_RADIUS;
+    glow.width = glow.height = r * DPR * 2;
+    const g = glow.getContext('2d');
+    g.setTransform(DPR,0,0,DPR,0,0);
+    const grad = g.createRadialGradient(r,r,0,r,r,r);
+    grad.addColorStop(0,'rgba(160,240,255,0.95)');
+    grad.addColorStop(1,'rgba(160,240,255,0)');
+    g.fillStyle = grad;
+    g.beginPath(); g.arc(r,r,r,0,Math.PI*2); g.fill();
+  })();
+
+  function size(){
+    const cssW = Math.max(1, Math.floor(window.innerWidth));
+    const cssH = Math.max(1, Math.floor(window.innerHeight));
+    canvas.width  = cssW * DPR;
+    canvas.height = cssH * DPR;
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+
+  function spawn(){
+    const cw = Math.max(1, Math.floor(window.innerWidth));
+    const ch = Math.max(1, Math.floor(window.innerHeight));
+    pts.length = 0;
+    for (let i=0; i<COUNT; i++){
+      let sx, sy;
+      if (SPAWN_MODE === 'center'){ sx = anchor.x; sy = anchor.y; }
+      else {
+        const edge = Math.floor(Math.random()*4);
+        if (edge===0){ sx = -20; sy = Math.random()*ch; }
+        if (edge===1){ sx = cw+20; sy = Math.random()*ch; }
+        if (edge===2){ sx = Math.random()*cw; sy = -20; }
+        if (edge===3){ sx = Math.random()*cw; sy = ch+20; }
+      }
+      const a = Math.random()*Math.PI*2;
+      const r = (0.4 + Math.random()*0.6) * BASE_RADIUS;
+      const toAx = anchor.x - sx, toAy = anchor.y - sy;
+      const dist = Math.hypot(toAx,toAy) || 1;
+      const iv = 180 + Math.random()*180;
+      pts.push({ x: sx, y: sy, vx: (toAx/dist)*iv, vy: (toAy/dist)*iv, homeA: a, homeR: r, swirl: (0.3+Math.random()*0.7)*SWIRL });
+    }
+  }
+
+  function onMove(e){ mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true; }
+  function onLeave(){ mouse.active = false; }
+  function onClick(e){
+    const cx = e.clientX, cy = e.clientY;
+    state.scatter = Math.min(1.5, state.scatter + 1.0);
+    for (const p of pts){
+      const dx = p.x - cx, dy = p.y - cy;
+      const d = Math.hypot(dx,dy) + 0.001;
+      const uX = dx/d, uY = dy/d;
+      const impulse = CLICK_IMPULSE * (0.6 + 0.4*Math.random());
+      p.vx += uX * impulse; p.vy += uY * impulse;
+    }
+  }
+
+  const footerEl = document.getElementById('contact');
+  function getFade(){
+    if (!footerEl) return 1;
+    const rect = footerEl.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const start = vh, end = vh * 0.4;
+    if (rect.top >= start) return 1;
+    if (rect.top <= end) return 0;
+    return (rect.top - end) / (start - end);
+  }
+
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const cw = Math.max(1, Math.floor(window.innerWidth));
+    const ch = Math.max(1, Math.floor(window.innerHeight));
+
+    const kAnchor = 12;
+    const tx = mouse.active ? mouse.x : anchor.x;
+    const ty = mouse.active ? mouse.y : anchor.y;
+    anchor.x += (tx - anchor.x) * Math.min(1, kAnchor*dt);
+    anchor.y += (ty - anchor.y) * Math.min(1, kAnchor*dt);
+
+    if (state.scatter > 0) state.scatter = Math.max(0, state.scatter - 1.2*dt);
+
+    ctx.clearRect(0, 0, cw, ch);
+
+    const fade = getFade();
+    ctx.save(); ctx.globalAlpha = fade;
+
+    // Grid
+    ctx.save(); ctx.globalAlpha *= GRID_ALPHA; ctx.lineWidth = 1; ctx.strokeStyle = '#7fd0ff';
+    const ox = ((anchor.x/cw)-0.5)*8, oy = ((anchor.y/ch)-0.5)*8;
+    for (let x = (ox % GRID_SPACING) - GRID_SPACING; x < cw + GRID_SPACING; x += GRID_SPACING){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,ch); ctx.stroke(); }
+    for (let y = (oy % GRID_SPACING) - GRID_SPACING; y < ch + GRID_SPACING; y += GRID_SPACING){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(cw,y); ctx.stroke(); }
+    ctx.restore();
+
+    // Update cluster
+    const damping = Math.pow(DAMPING, dt*60);
+    for (const p of pts){
+      p.homeA += p.swirl * 0.3 * dt;
+      const targetR = p.homeR * (1 + state.scatter*1.4);
+      const px = anchor.x + Math.cos(p.homeA) * targetR;
+      const py = anchor.y + Math.sin(p.homeA) * targetR;
+      const ax = (px - p.x) * STIFFNESS + (Math.random()-0.5) * NOISE * dt;
+      const ay = (py - p.y) * STIFFNESS + (Math.random()-0.5) * NOISE * dt;
+      p.vx = (p.vx + ax * dt) * damping;
+      p.vy = (p.vy + ay * dt) * damping;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+
+    // Draw particles + proximity lines
+    for (let i=0; i<pts.length; i++){
+      const p = pts[i];
+      ctx.drawImage(glow, (p.x - PARTICLE_RADIUS), (p.y - PARTICLE_RADIUS), PARTICLE_RADIUS*2, PARTICLE_RADIUS*2);
+      for (let j=i+1; j<pts.length; j++){
+        const q = pts[j];
+        const dx = p.x - q.x, dy = p.y - q.y, d = Math.hypot(dx,dy);
+        if (d < LINK_DIST){
+          const a = (1 - d/LINK_DIST) * 0.6;
+          ctx.strokeStyle = `rgba(160,240,255,${a})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+        }
+      }
+    }
+
+    ctx.restore();
+    requestAnimationFrame(loop);
+  }
+
+  (function init(){
+    window.addEventListener('resize', size, { passive:true });
+    size(); spawn(); requestAnimationFrame(loop);
+    window.addEventListener('mousemove', onMove, { passive:true });
+    window.addEventListener('mouseleave', onLeave, { passive:true });
+    window.addEventListener('click', onClick);
+    const vid=document.getElementById('heroVideo'); if (vid){ const p=vid.play(); if (p && p.catch) p.catch(()=>vid.remove()); }
+  })();
+
+  // =================== TOOLS ICONS LOADER (tooltips moved up slightly) ===================
+  const ICON_MAX = 12;
+  const ICON_EXTS = ["svg","png","webp","jpg","jpeg"];
+  const ICON_LABELS = {
+    1: "3ds Max", 2: "V-Ray", 3: "Corona", 4: "Vantage", 5: "Anima", 6: "Forest Pack",
+    7: "RailClone", 8: "Photoshop", 9: "After Effects", 10: "Premiere Pro", 11: "DaVinci Resolve", 12: "Unreal Engine",
+  };
+  const toolIconsEl = document.getElementById('toolIcons');
+
+  function resolveIcon(n, cb){
+    let i=0;
+    function tryNext(){
+      if (i >= ICON_EXTS.length){ cb(null); return; }
+      const ext = ICON_EXTS[i++];
+      const src = `Media/icons/${n}.${ext}`;
+      const img = new Image();
+      img.onload = () => cb(src);
+      img.onerror = tryNext;
+      img.src = src;
+    }
+    tryNext();
+  }
+
+  (async function loadIcons(){
+    let foundAny = false;
+    for (let n=1; n<=ICON_MAX; n++){
+      await new Promise(res=>{
+        resolveIcon(n, (src)=>{
+          if (src){
+            foundAny = true;
+            const label = ICON_LABELS[n] || `Tool ${n}`;
+            const item = document.createElement('div');
+            item.className = "group relative flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 transition";
+            item.innerHTML = `
+              <img src="${src}" alt="${label}" class="h-6 w-6 object-contain" />
+              <div class="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/80 px-2 py-1 text-xs text-white/90 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition">
+                ${label}
+                <span class="absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-l border-t border-white/10 bg-black/80"></span>
+              </div>
+            `;
+            toolIconsEl.appendChild(item);
+          }
+          res();
+        });
+      });
+    }
+    if (!foundAny){
+      document.getElementById('toolHint').classList.remove('hidden');
+    }
+  })();
+
+  // ---------- Utilities shared with metadata UI ----------
+  function filenameFromURL(url){
+    try{ return decodeURIComponent(url.split('/').pop()) || url; }catch{ return url; }
+  }
+  function formatBytes(bytes){
+    if (!Number.isFinite(bytes) || bytes < 0) return "—";
+    const u=["B","KB","MB","GB","TB"]; let i=0,n=bytes;
+    while(n>=1024 && i<u.length-1){ n/=1024; i++; }
+    return `${n.toFixed(n<10&&i>0?1:0)} ${u[i]}`;
+  }
+  function normalizeTags(raw){
+    if (!raw) return [];
+    const arr = Array.isArray(raw) ? raw : [raw];
+    const out = [];
+    for (const v of arr){
+      if (!v) continue;
+      const parts = String(v).split(/[;,|]/);
+      for (let p of parts){
+        p = p.trim();
+        if (p) out.push(p);
+      }
+    }
+    return out;
+  }
+
+  // ========== Tag → Icon mapping for fullscreen image overlay ==========
+  const TAG_TO_ICON = {
+    // 1: 3ds Max
+    "3ds max":1, "3dsmax":1, "autodesk 3ds max":1, "max":1,
+    // 2: V-Ray
+    "v-ray":2, "vray":2, "v ray":2,
+    // 3: Corona
+    "corona":3, "corona renderer":3,
+    // 4: Vantage
+    "vantage":4, "chaos vantage":4,
+    // 5: Anima
+    "anima":5, "axyz anima":5,
+    // 6: Forest Pack
+    "forest pack":6, "forestpack":6, "itoo forest":6,
+    // 7: RailClone
+    "railclone":7, "rail clone":7, "itoo railclone":7,
+    // 8: Photoshop
+    "photoshop":8, "adobe photoshop":8, "ps":8,
+    // 9: After Effects
+    "after effects":9, "after-effects":9, "adobe after effects":9, "ae":9,
+    // 10: Premiere
+    "premiere pro":10, "premiere":10, "adobe premiere":10, "pr":10,
+    // 11: DaVinci Resolve
+    "davinci resolve":11, "resolve":11,
+    // 12: Unreal
+    "unreal engine":12, "unreal":12, "ue":12, "ue5":12
+  };
+
+  const iconSrcCache = {}; // n -> resolved icon src
+  function getIconByIndex(n){
+    return new Promise(res=>{
+      if (iconSrcCache[n]) return res(iconSrcCache[n]);
+      resolveIcon(n, (src)=>{ if (src) iconSrcCache[n] = src; res(src||null); });
+    });
+  }
+
+  async function extractImageTags(url){
+    // Read EXIF/IPTC/XMP; best over http(s)
+    try{
+      const data = await exifr.parse(url, { iptc:true, xmp:true, exif:true, ifd0:true });
+      const raw = normalizeTags([
+        data?.Keywords,
+        data?.Subject,
+        data?.tags,
+        data?.XPKeywords,
+        data?.hierarchicalSubject,
+        data?.dc?.subject
+      ]);
+      return raw;
+    }catch{ return []; }
+  }
+
+  function mapTagsToIconIndices(tags){
+    const set = new Set();
+    for (const raw of tags){
+      const k = raw.toLowerCase().replace(/\s+/g,' ').trim();
+      if (TAG_TO_ICON[k]) set.add(TAG_TO_ICON[k]);
+      if (/^v[\s-]?ray$/.test(k)) set.add(2); // loose match
+      if (/^ue ?\d*/.test(k)) set.add(12);    // UE, UE5, etc.
+    }
+    return Array.from(set);
+  }
+
+  async function populateImageIcons(url){
+    const strip = document.getElementById('lbIconStrip');
+    if (!strip) return;
+    strip.innerHTML = "";
+    const tags = await extractImageTags(url);
+    const indices = mapTagsToIconIndices(tags);
+    for (const n of indices){
+      const src = await getIconByIndex(n);
+      if (!src) continue;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = ICON_LABELS[n] || `Tool ${n}`;
+      img.title = img.alt;
+      img.className = "h-6 w-6 object-contain opacity-90";
+      strip.appendChild(img);
+    }
+  }
+
+  // =================== IMAGE GALLERY (auto-discover numbered files) ===================
+  const IMG_EXTS = ["jpg","jpeg","png","webp"];
+  const IMG_MAX  = 200;           // upper bound for probing
+  const PAGE_SIZE = 6;            // 2 rows (lg: 3 columns)
+  const galleryEl = document.getElementById('gallery');
+  const toggleImagesBtn = document.getElementById('toggleImages');
+  const imageList = [];           // discovered sources
+  let imagesExpanded = false;     // collapsed by default
+
+  function tryLoadImage(src){
+    return new Promise(res=>{
+      const im = new Image();
+      im.onload = ()=>res(true);
+      im.onerror = ()=>res(false);
+      im.src = src;
+    });
+  }
+
+  async function discoverImages(){
+    const found = [];
+    // Only numbered files; Profile.jpg is ignored naturally
+    for (let i=1; i<=IMG_MAX; i++){
+      const n2 = i.toString().padStart(2,'0');
+      for (const ext of IMG_EXTS){
+        const candidate = `Media/images/${n2}.${ext}`;
+        /* eslint-disable no-await-in-loop */
+        if (await tryLoadImage(candidate)) { found.push(candidate); break; }
+        const alt = `Media/images/${i}.${ext}`; // optionally support non-padded numbers
+        if (await tryLoadImage(alt))           { found.push(alt); break; }
+      }
+    }
+    return found;
+  }
+
+  function imgCard(src, idx){
+    const btn = document.createElement('button');
+    btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
+    btn.setAttribute('data-index', idx);
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.loading = "lazy";
+    img.alt = "";
+    img.className = "thumb h-full w-full object-cover";
+    img.onerror = () => { btn.remove(); };
+
+    const glow = document.createElement('div');
+    glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
+
+    const badgeWrap = document.createElement('div');
+    badgeWrap.className = "pointer-events-none absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition";
+    badgeWrap.innerHTML = `<span class="rounded-full border border-white/30 bg-black/30 backdrop-blur px-2 py-0.5 text-xs">View</span>`;
+
+    btn.appendChild(img);
+    btn.appendChild(glow);
+    btn.appendChild(badgeWrap);
+    btn.addEventListener('click', openLightbox);
+    return btn;
+  }
+
+  function renderImages(){
+    galleryEl.innerHTML = "";
+    const toShow = imagesExpanded ? imageList.length : Math.min(PAGE_SIZE, imageList.length);
+    for (let i=0; i<toShow; i++){
+      galleryEl.appendChild(imgCard(imageList[i], i));
+    }
+    toggleImagesBtn.textContent = imagesExpanded ? "Show less" : "Show more";
+    document.getElementById('galleryActions').classList.toggle('hidden', imageList.length <= PAGE_SIZE);
+  }
+
+  // Image lightbox (moved to end of <body>)
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lbImg');
+  const lbClose = document.getElementById('lbClose');
+  const lbPrev = document.getElementById('lbPrev');
+  const lbNext = document.getElementById('lbNext');
+  let currentIndex = 0;
+
+  function openLightbox(e){
+    const btn = e.currentTarget;
+    currentIndex = parseInt(btn.getAttribute('data-index'), 10) || 0;
+    lbImg.src = imageList[currentIndex];
+    lb.classList.remove('hidden');
+    document.body.style.overflow = "hidden";
+    // NEW: populate icons based on metadata tags
+    populateImageIcons(lbImg.src);
+  }
+  function closeLightbox(){ lb.classList.add('hidden'); document.body.style.overflow = ""; }
+  function show(delta){
+    currentIndex = (currentIndex + delta + imageList.length) % imageList.length;
+    lbImg.src = imageList[currentIndex];
+    // NEW: update icons on navigation
+    populateImageIcons(lbImg.src);
+  }
+  lbClose.addEventListener('click', closeLightbox);
+  lb.addEventListener('click', (e)=>{ if(e.target === lb || e.target.classList.contains('bg-black/90')) closeLightbox(); });
+  lbPrev.addEventListener('click', ()=>show(-1));
+  lbNext.addEventListener('click', ()=>show(1));
+  window.addEventListener('keydown', (e)=>{
+    if (lb.classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') show(-1);
+    if (e.key === 'ArrowRight') show(1);
+  });
+
+  toggleImagesBtn.addEventListener('click', ()=>{
+    imagesExpanded = !imagesExpanded;
+    renderImages();
+  });
+
+  (async function initImages(){
+    const found = await discoverImages();
+    imageList.push(...found);
+    if (!imageList.length){
+      document.getElementById('portfolio').classList.add('hidden');
+      return;
+    }
+    renderImages();
+  })();
+
+  // =================== VIDEOS GALLERY (auto-discover numbered files) ===================
+  const videoGrid = document.getElementById('videoGrid');
+  const toggleVideosBtn = document.getElementById('toggleVideos');
+  const VIDEO_MAX = 200;
+  const VIDEO_EXTS = ["mp4","webm","mov"];  // will pick the first that exists
+  const videoList = [];
+  let videosExpanded = false;
+
+  function canPlayVideo(src){
+    return new Promise(res=>{
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.muted = true;
+      v.src = src;
+      let settled = false;
+      v.oncanplay = ()=>{ if(!settled){settled=true; res(true);} };
+      v.onerror   = ()=>{ if(!settled){settled=true; res(false);} };
+      v.load();
+      setTimeout(()=>{ if(!settled) res(false); }, 2000);
+    });
+  }
+
+  async function discoverVideos(){
+    const found = [];
+    for (let i=1; i<=VIDEO_MAX; i++){
+      const n2 = i.toString().padStart(2,'0');
+      for (const ext of VIDEO_EXTS){
+        const src = `Media/Videos/${n2}.${ext}`;
+        /* eslint-disable no-await-in-loop */
+        if (await canPlayVideo(src)) { found.push(src); break; }
+        const alt = `Media/Videos/${i}.${ext}`; // optional non-padded
+        if (await canPlayVideo(alt)) { found.push(alt); break; }
+      }
+      // keep scanning even if gaps exist
+    }
+    return found;
+  }
+
+  function videoCard(src, idx){
+    const btn = document.createElement('button');
+    btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
+    btn.setAttribute('data-vidindex', idx);
+
+    const vid = document.createElement('video');
+    vid.src = src;
+    vid.className = "thumb h-full w-full object-cover opacity-90";
+    vid.muted = true; vid.loop = true; vid.playsInline = true;
+    vid.oncanplay = () => { vid.play().catch(()=>{}); };
+    vid.onerror = () => { btn.remove(); };
+
+    const playBadge = document.createElement('div');
+    playBadge.className = "absolute inset-0 grid place-items-center pointer-events-none";
+    playBadge.innerHTML = `<span class="rounded-full border border-white/50 bg-black/40 backdrop-blur px-3 py-1 text-sm">▶ Play</span>`;
+
+    const glow = document.createElement('div');
+    glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
+
+    btn.appendChild(vid);
+    btn.appendChild(playBadge);
+    btn.appendChild(glow);
+    btn.addEventListener('click', openVideoLightbox);
+    return btn;
+  }
+
+  function renderVideos(){
+    videoGrid.innerHTML = "";
+    const toShow = videosExpanded ? videoList.length : Math.min(PAGE_SIZE, videoList.length);
+    for (let i=0; i<toShow; i++){
+      videoGrid.appendChild(videoCard(videoList[i], i));
+    }
+    toggleVideosBtn.textContent = videosExpanded ? "Show less" : "Show more";
+    document.getElementById('videoActions').classList.toggle('hidden', videoList.length <= PAGE_SIZE);
+  }
+
+  // Video lightbox
+  const vlb = document.getElementById('vidLightbox');
+  const vlbVideo = document.getElementById('vlbVideo');
+  const vlbClose = document.getElementById('vlbClose');
+  const vlbPrev = document.getElementById('vlbPrev');
+  const vlbNext = document.getElementById('vlbNext');
+  let currentVidIndex = 0;
+
+  function openVideoLightbox(e){
+    const btn = e.currentTarget;
+    currentVidIndex = parseInt(btn.getAttribute('data-vidindex'), 10) || 0;
+    vlbVideo.src = videoList[currentVidIndex];
+    vlb.classList.remove('hidden');
+    document.body.style.overflow = "hidden";
+    vlbVideo.currentTime = 0;
+    vlbVideo.play().catch(()=>{});
+  }
+  function closeVideoLightbox(){
+    vlb.classList.add('hidden');
+    document.body.style.overflow = "";
+    vlbVideo.pause();
+    vlbVideo.src = "";
+  }
+  function showVideo(delta){
+    currentVidIndex = (currentVidIndex + delta + videoList.length) % videoList.length;
+    vlbVideo.src = videoList[currentVidIndex];
+    vlbVideo.currentTime = 0;
+    vlbVideo.play().catch(()=>{});
+  }
+  vlbClose.addEventListener('click', closeVideoLightbox);
+  vlb.addEventListener('click', (e)=>{ if(e.target === vlb || e.target.classList.contains('bg-black/90')) closeVideoLightbox(); });
+  vlbPrev.addEventListener('click', ()=>showVideo(-1));
+  vlbNext.addEventListener('click', ()=>showVideo(1));
+  window.addEventListener('keydown', (e)=>{
+    if (!vlb.classList.contains('hidden')) {
+      if (e.key === 'Escape') closeVideoLightbox();
+      if (e.key === 'ArrowLeft') showVideo(-1);
+      if (e.key === 'ArrowRight') showVideo(1);
+    }
+  });
+
+  toggleVideosBtn.addEventListener('click', ()=>{
+    videosExpanded = !videosExpanded;
+    renderVideos();
+  });
+
+  (async function initVideos(){
+    const found = await discoverVideos();
+    videoList.push(...found);
+    if (!videoList.length){
+      document.getElementById('videos').classList.add('hidden');
+      return;
+    }
+    renderVideos();
+  })();
+</script>
+</body>
+</html>
