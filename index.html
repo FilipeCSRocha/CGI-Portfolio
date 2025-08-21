@@ -4,7 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Filipe Rocha — CGI Portfolio</title>
+
+  <!-- Tailwind note:
+       For production, replace this CDN helper with your compiled CSS.
+       Example: <link rel="stylesheet" href="assets/tailwind.build.css">
+       Build: npx tailwindcss -i input.css -o assets/tailwind.build.css --minify -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Favicon: use your first tools icon if present (quietly ignored if missing) -->
+  <link rel="icon" type="image/png" href="Media/icons/1.png" />
+
   <style>
     html{scroll-behavior:smooth}
     body{background:#0a0f12;color:#fff;margin:0}
@@ -48,7 +57,7 @@
     <div class="grid gap-8 md:grid-cols-[1fr_1.6fr] items-start">
       <div class="flex justify-center">
         <div class="relative w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(160,240,255,0.25)]">
-          <!-- src will be resolved in JS to handle case/extension variations -->
+          <!-- src resolved in JS to handle case/extension variations -->
           <img id="profileImg" src="" alt="Filipe Rocha" class="h-full w-full object-cover" />
         </div>
       </div>
@@ -322,12 +331,17 @@
   })();
 
   /* ================= SMALL HELPERS ================= */
+  async function headExists(url){
+    try { const r = await fetch(url, { method: 'HEAD', cache: 'no-store' }); return r.ok; }
+    catch { return false; }
+  }
+
   function probeImage(url){
     return new Promise(function(res){
       var im = new Image();
       im.onload = function(){ res(true); };
       im.onerror = function(){ res(false); };
-      im.src = url + (url.indexOf('?')===-1 ? '' : '') ;
+      im.src = url;
     });
   }
 
@@ -342,12 +356,12 @@
       // eslint-disable-next-line no-await-in-loop
       if (await probeImage(candidates[i])) { src = candidates[i]; break; }
     }
-    if (!src) src = "Media/images/01.jpg"; // graceful fallback to first image if present
+    if (!src) src = "Media/images/01.jpg"; // graceful fallback
     var el = document.getElementById('profileImg');
     if (el) el.src = src;
   })();
 
-  /* ================= TOOLS ICONS (PNG only) ================= */
+  /* ================= TOOLS ICONS (PNG only, HEAD-checked) ================= */
   (function(){
     var ICON_MAX = 12;
     var ICON_EXTS = ["png","PNG"]; // icons are PNG only (case tolerant)
@@ -357,305 +371,276 @@
     };
     var toolIconsEl = document.getElementById('toolIcons');
 
-    function resolveIcon(n, cb){
-      var i=0;
-      function next(){
-        if (i >= ICON_EXTS.length){ cb(null); return; }
-        var ext = ICON_EXTS[i++];
-        var src = "Media/icons/" + n + "." + ext; // fixed folder + png only
-        var im = new Image();
-        im.onload = function(){ cb(src); };
-        im.onerror = next;
-        im.src = src;
+    async function findIcon(n){
+      for (var i=0;i<ICON_EXTS.length;i++){
+        var src = "Media/icons/" + n + "." + ICON_EXTS[i];
+        // eslint-disable-next-line no-await-in-loop
+        if (await headExists(src)) return src;
       }
-      next();
+      return null;
     }
 
     (async function load(){
       var any=false;
       for (var n=1; n<=ICON_MAX; n++){
-        await new Promise(function(res){
-          resolveIcon(n, function(src){
-            if (src){
-              any=true;
-              var label = ICON_LABELS[n] || ("Tool " + n);
-              var wrap = document.createElement('div');
-              wrap.className = "group relative flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 transition";
+        // eslint-disable-next-line no-await-in-loop
+        var src = await findIcon(n);
+        if (src){
+          any=true;
+          var label = ICON_LABELS[n] || ("Tool " + n);
+          var wrap = document.createElement('div');
+          wrap.className = "group relative flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 transition";
 
-              var img = document.createElement('img');
-              img.src = src; img.alt = label; img.className = "h-6 w-6 object-contain";
-              wrap.appendChild(img);
+          var img = document.createElement('img');
+          img.src = src; img.alt = label; img.className = "h-6 w-6 object-contain";
+          wrap.appendChild(img);
 
-              var tip = document.createElement('div');
-              tip.className = "pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/80 px-2 py-1 text-xs text-white/90 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition";
-              tip.textContent = label;
+          var tip = document.createElement('div');
+          tip.className = "pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/80 px-2 py-1 text-xs text-white/90 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition";
+          tip.textContent = label;
 
-              var arrow = document.createElement('span');
-              arrow.className = "absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-l border-t border-white/10 bg-black/80";
-              tip.appendChild(arrow);
+          var arrow = document.createElement('span');
+          arrow.className = "absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-2 rotate-45 border-l border-t border-white/10 bg-black/80";
+          tip.appendChild(arrow);
 
-              wrap.appendChild(tip);
-              toolIconsEl.appendChild(wrap);
-            }
-            res();
-          });
-        });
+          wrap.appendChild(tip);
+          toolIconsEl.appendChild(wrap);
+        }
       }
       if (!any) document.getElementById('toolHint').classList.remove('hidden');
     })();
   })();
 
- /* ================= IMAGES (from List file) ================= */
-(async function() {
-  const galleryEl = document.getElementById('gallery');
-  const toggleBtn = document.getElementById('toggleImages');
-  const PAGE_SIZE = 6;
-  let allImages = [];
-  let expanded = false;
+  /* ================= IMAGES (from Media/images/List.txt, no 404 spam) ================= */
+  (async function() {
+    const galleryEl = document.getElementById('gallery');
+    const toggleBtn = document.getElementById('toggleImages');
+    const PAGE_SIZE = 6;
 
-  async function loadList() {
-    const res = await fetch("Media/images/List");
-    const text = await res.text();
-    return text.split(/\r?\n/).map(f => f.trim()).filter(f => f.length > 0);
-  }
+    let entries = [];   // [{file, thumb}]
+    let expanded = false;
 
-  function makeCard(file, idx) {
-    const btn = document.createElement('button');
-    btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
-    btn.setAttribute('data-index', idx);
-
-    const img = document.createElement('img');
-    img.src = "Media/images/thumbs/" + file; // if you have thumbs
-    img.onerror = function(){ img.src = "Media/images/" + file; }; // fallback to full
-    img.loading = "lazy";
-    img.className = "thumb h-full w-full object-cover";
-
-    const glow = document.createElement('div');
-    glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
-
-    const badge = document.createElement('div');
-    badge.className = "pointer-events-none absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition";
-    const badgeSpan = document.createElement('span');
-    badgeSpan.className = "rounded-full border border-white/30 bg-black/30 backdrop-blur px-2 py-0.5 text-xs";
-    badgeSpan.textContent = "View";
-    badge.appendChild(badgeSpan);
-
-    btn.appendChild(img);
-    btn.appendChild(glow);
-    btn.appendChild(badge);
-    btn.addEventListener('click', openLightbox);
-    return btn;
-  }
-
-  function render() {
-    galleryEl.innerHTML = "";
-    const toShow = expanded ? allImages.length : Math.min(PAGE_SIZE, allImages.length);
-    for (let i = 0; i < toShow; i++) {
-      galleryEl.appendChild(makeCard(allImages[i], i));
+    async function loadListTxt() {
+      const res = await fetch("Media/images/List.txt", { cache: "no-store" });
+      if (!res.ok) throw new Error("List.txt not found");
+      const text = await res.text();
+      // one filename per line; drop blanks and 'Profile.jpg' / 'profile.jpeg' etc.
+      return text
+        .split(/\r?\n/)
+        .map(s => s.trim())
+        .filter(Boolean)
+        .filter(f => !/^profile\.(?:jpe?g)$/i.test(f));
     }
-    toggleBtn.textContent = expanded ? "Show less" : "Show more";
-    document.getElementById('galleryActions').classList.toggle('hidden', allImages.length <= PAGE_SIZE);
-  }
 
-  // Lightbox (reuse your existing code)
-  const lb = document.getElementById('lightbox');
-  const lbImg = document.getElementById('lbImg');
-  const lbClose = document.getElementById('lbClose');
-  const lbPrev = document.getElementById('lbPrev');
-  const lbNext = document.getElementById('lbNext');
-  let current = 0;
-
-  function openLightbox(e) {
-    current = parseInt(e.currentTarget.getAttribute('data-index'), 10) || 0;
-    lbImg.src = "Media/images/" + allImages[current];
-    lb.classList.remove('hidden');
-    document.body.style.overflow = "hidden";
-  }
-  function closeLightbox(){ lb.classList.add('hidden'); document.body.style.overflow = ""; }
-  function show(delta){
-    current = (current + delta + allImages.length) % allImages.length;
-    lbImg.src = "Media/images/" + allImages[current];
-  }
-  lbClose.addEventListener('click', closeLightbox);
-  lbPrev.addEventListener('click', ()=>show(-1));
-  lbNext.addEventListener('click', ()=>show(1));
-  window.addEventListener('keydown', e=>{
-    if (lb.classList.contains('hidden')) return;
-    if (e.key === 'Escape') closeLightbox();
-    if (e.key === 'ArrowLeft') show(-1);
-    if (e.key === 'ArrowRight') show(1);
-  });
-
-  toggleBtn.addEventListener('click', function(){
-    expanded = !expanded;
-    render();
-  });
-
-  // Init
-  allImages = await loadList();
-  if (!allImages.length) {
-    document.getElementById('portfolio').classList.add('hidden');
-    return;
-  }
-  render();
-})();
-
-  /* ================= VIDEOS: stop after 2 consecutive misses ================= */
-(function(){
-  var VIDEO_DIR = "Media/videos";
-  var VIDEO_EXTS = ["mp4","MP4"]; // mp4 only
-  var videoGrid = document.getElementById('videoGrid');
-  var toggleBtn = document.getElementById('toggleVideos');
-  var PAGE = 6;
-
-  var videoList = [];
-  var expanded = false;
-  var scanned = 0;
-  var missesInARow = 0;
-  var videosExhausted = false;
-
-  function canPlay(src){
-    return new Promise(function(res){
-      var v = document.createElement('video');
-      v.preload = 'metadata';
-      v.muted = true;
-      v.src = src;
-      var done = false;
-      v.oncanplay = function(){ if(!done){done=true; res(true);} };
-      v.onerror   = function(){ if(!done){done=true; res(false);} };
-      v.load();
-      setTimeout(function(){ if(!done) res(false); }, 1500);
-    });
-  }
-
-  async function resolveForIndex(i){
-    var n2 = String(i).padStart(2,'0');
-    for (var e=0; e<VIDEO_EXTS.length; e++){
-      var ext = VIDEO_EXTS[e];
-      var p1 = VIDEO_DIR + "/" + n2 + "." + ext;
-      var p2 = VIDEO_DIR + "/" + i   + "." + ext;
-      // eslint-disable-next-line no-await-in-loop
-      if (await canPlay(p1)) return p1;
-      // eslint-disable-next-line no-await-in-loop
-      if (await canPlay(p2)) return p2;
+    async function buildEntries(files){
+      // Prefer a matching thumb if it exists; otherwise use the full image.
+      const checks = files.map(async f => {
+        const full = `Media/images/${f}`;
+        const thumbPath = `Media/images/thumbs/${f}`;
+        const thumb = (await headExists(thumbPath)) ? thumbPath : full;
+        return { file: f, thumb };
+      });
+      return Promise.all(checks);
     }
-    return null;
-  }
 
-  async function discoverBatch(limit){
-    if (videosExhausted) return;
-    while (scanned < limit){
-      scanned++;
-      // eslint-disable-next-line no-await-in-loop
-      var src = await resolveForIndex(scanned);
-      if (src){
-        videoList.push(src);
-        missesInARow = 0;
-      } else {
-        missesInARow++;
-        if (missesInARow >= 2){ // <- hard stop after two consecutive misses
-          videosExhausted = true;
-          break;
-        }
-      }
+    function makeCard(entry, idx) {
+      const btn = document.createElement('button');
+      btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
+      btn.setAttribute('data-index', idx);
+
+      const img = document.createElement('img');
+      img.src = entry.thumb;                      // validated via HEAD
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.className = "thumb h-full w-full object-cover";
+
+      const glow = document.createElement('div');
+      glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
+
+      const badge = document.createElement('div');
+      badge.className = "pointer-events-none absolute inset-0 flex items-end justify-end p-3 opacity-0 group-hover:opacity-100 transition";
+      const badgeSpan = document.createElement('span');
+      badgeSpan.className = "rounded-full border border-white/30 bg-black/30 backdrop-blur px-2 py-0.5 text-xs";
+      badgeSpan.textContent = "View";
+      badge.appendChild(badgeSpan);
+
+      btn.appendChild(img);
+      btn.appendChild(glow);
+      btn.appendChild(badge);
+      btn.addEventListener('click', openLightbox);
+      return btn;
     }
-  }
 
-  function card(src, idx){
-    var btn = document.createElement('button');
-    btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
-    btn.setAttribute('data-vidindex', idx);
-
-    var vid = document.createElement('video');
-    vid.src = src;
-    vid.className = "thumb h-full w-full object-cover opacity-90";
-    vid.muted = true; vid.loop = true; vid.playsInline = true;
-    vid.oncanplay = function(){ vid.play().catch(function(){}); };
-    vid.onerror = function(){ btn.remove(); };
-
-    var badge = document.createElement('div');
-    badge.className = "absolute inset-0 grid place-items-center pointer-events-none";
-    var span = document.createElement('span');
-    span.className = "rounded-full border border-white/50 bg-black/40 backdrop-blur px-3 py-1 text-sm";
-    span.textContent = "▶ Play";
-    badge.appendChild(span);
-
-    var glow = document.createElement('div');
-    glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
-
-    btn.appendChild(vid); btn.appendChild(badge); btn.appendChild(glow);
-    btn.addEventListener('click', openLightbox);
-    return btn;
-  }
-
-  function render(){
-    videoGrid.innerHTML = "";
-    var toShow = expanded ? videoList.length : Math.min(PAGE, videoList.length);
-    for (var i=0; i<toShow; i++){
-      videoGrid.appendChild(card(videoList[i], i));
+    function render() {
+      galleryEl.innerHTML = "";
+      const toShow = expanded ? entries.length : Math.min(PAGE_SIZE, entries.length);
+      for (let i = 0; i < toShow; i++) galleryEl.appendChild(makeCard(entries[i], i));
+      toggleBtn.textContent = expanded ? "Show less" : "Show more";
+      document.getElementById('galleryActions').classList.toggle('hidden', entries.length <= PAGE_SIZE);
     }
-    toggleBtn.textContent = expanded ? "Show less" : "Show more";
-    var hideActions = videoList.length <= PAGE || (videosExhausted && expanded);
-    document.getElementById('videoActions').classList.toggle('hidden', hideActions);
-  }
 
-  var vlb = document.getElementById('vidLightbox');
-  var vlbVideo = document.getElementById('vlbVideo');
-  var vlbClose = document.getElementById('vlbClose');
-  var vlbPrev = document.getElementById('vlbPrev');
-  var vlbNext = document.getElementById('vlbNext');
-  var current = 0;
+    // Lightbox
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lbImg');
+    const lbClose = document.getElementById('lbClose');
+    const lbPrev = document.getElementById('lbPrev');
+    const lbNext = document.getElementById('lbNext');
+    let current = 0;
 
-  function openLightbox(e){
-    var btn = e.currentTarget;
-    current = parseInt(btn.getAttribute('data-vidindex'), 10) || 0;
-    vlbVideo.src = videoList[current];
-    vlb.classList.remove('hidden');
-    vlb.setAttribute('aria-hidden','false');
-    document.body.style.overflow = "hidden";
-    vlbVideo.currentTime = 0;
-    vlbVideo.play().catch(function(){});
-  }
-  function closeLightbox(){
-    vlb.classList.add('hidden');
-    vlb.setAttribute('aria-hidden','true');
-    document.body.style.overflow = "";
-    vlbVideo.pause();
-    vlbVideo.src = "";
-  }
-  function show(delta){
-    current = (current + delta + videoList.length) % videoList.length;
-    vlbVideo.src = videoList[current];
-    vlbVideo.currentTime = 0;
-    vlbVideo.play().catch(function(){});
-  }
-  vlbClose.addEventListener('click', closeLightbox);
-  vlb.addEventListener('click', function(e){ if(e.target === vlb || e.target.classList.contains('bg-black/90')) closeLightbox(); });
-  vlbPrev.addEventListener('click', function(){ show(-1); });
-  vlbNext.addEventListener('click', function(){ show(1); });
-  window.addEventListener('keydown', function(e){
-    if (!vlb.classList.contains('hidden')) {
+    function openLightbox(e) {
+      current = parseInt(e.currentTarget.getAttribute('data-index'), 10) || 0;
+      lbImg.src = `Media/images/${entries[current].file}`;
+      lb.classList.remove('hidden');
+      document.body.style.overflow = "hidden";
+    }
+    function closeLightbox(){ lb.classList.add('hidden'); document.body.style.overflow = ""; }
+    function show(delta){
+      current = (current + delta + entries.length) % entries.length;
+      lbImg.src = `Media/images/${entries[current].file}`;
+    }
+    lbClose.addEventListener('click', closeLightbox);
+    lbPrev.addEventListener('click', ()=>show(-1));
+    lbNext.addEventListener('click', ()=>show(1));
+    window.addEventListener('keydown', e=>{
+      if (lb.classList.contains('hidden')) return;
       if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowLeft') show(-1);
       if (e.key === 'ArrowRight') show(1);
-    }
-  });
+    });
 
-  toggleBtn.addEventListener('click', async function(){
-    expanded = !expanded;
-    if (expanded && !videosExhausted){ await discoverBatch(scanned + 60); }
-    render();
-  });
+    toggleBtn.addEventListener('click', function(){
+      expanded = !expanded;
+      render();
+    });
 
-  (async function init(){
-    await discoverBatch(40);
-    if (!videoList.length){
-      document.getElementById('videos').classList.add('hidden');
-      return;
+    // Init
+    try {
+      const files = await loadListTxt();      // reads Media/images/List.txt
+      if (!files.length) { document.getElementById('portfolio').classList.add('hidden'); return; }
+      entries = await buildEntries(files);    // HEAD once per thumb (no 404 logs)
+      render();
+    } catch (err) {
+      console.warn('[Images] ' + err.message);
+      document.getElementById('portfolio').classList.add('hidden');
     }
-    render();
   })();
-})();
+
+  /* ================= VIDEOS =================
+     Optional: if you create Media/videos/List.txt (one filename per line),
+     this will use it; otherwise it hides the Videos section gracefully.
+  ================================================= */
+  (async function(){
+    const videoGrid = document.getElementById('videoGrid');
+    const toggleBtn = document.getElementById('toggleVideos');
+    const PAGE = 6;
+
+    let files = [];
+    let expanded = false;
+
+    async function loadListTxt() {
+      // Try to fetch a manifest; if missing, throw and we’ll hide the section quietly.
+      const res = await fetch("Media/videos/List.txt", { cache: "no-store" });
+      if (!res.ok) throw new Error("Videos List.txt not found");
+      const text = await res.text();
+      return text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    }
+
+    function card(src, idx){
+      const btn = document.createElement('button');
+      btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
+      btn.setAttribute('data-vidindex', idx);
+
+      const vid = document.createElement('video');
+      vid.src = src;
+      vid.className = "thumb h-full w-full object-cover opacity-90";
+      vid.muted = true; vid.loop = true; vid.playsInline = true;
+      vid.oncanplay = ()=>{ vid.play().catch(()=>{}); };
+
+      const badge = document.createElement('div');
+      badge.className = "absolute inset-0 grid place-items-center pointer-events-none";
+      const span = document.createElement('span');
+      span.className = "rounded-full border border-white/50 bg-black/40 backdrop-blur px-3 py-1 text-sm";
+      span.textContent = "▶ Play";
+      badge.appendChild(span);
+
+      const glow = document.createElement('div');
+      glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
+
+      btn.appendChild(vid); btn.appendChild(badge); btn.appendChild(glow);
+      btn.addEventListener('click', openLightbox);
+      return btn;
+    }
+
+    function render(){
+      videoGrid.innerHTML = "";
+      const toShow = expanded ? files.length : Math.min(PAGE, files.length);
+      for (let i=0; i<toShow; i++){
+        videoGrid.appendChild(card(`Media/videos/${files[i]}`, i));
+      }
+      toggleBtn.textContent = expanded ? "Show less" : "Show more";
+      document.getElementById('videoActions').classList.toggle('hidden', files.length <= PAGE);
+    }
+
+    const vlb = document.getElementById('vidLightbox');
+    const vlbVideo = document.getElementById('vlbVideo');
+    const vlbClose = document.getElementById('vlbClose');
+    const vlbPrev = document.getElementById('vlbPrev');
+    const vlbNext = document.getElementById('vlbNext');
+    let current = 0;
+
+    function openLightbox(e){
+      const btn = e.currentTarget;
+      current = parseInt(btn.getAttribute('data-vidindex'), 10) || 0;
+      vlbVideo.src = `Media/videos/${files[current]}`;
+      vlb.classList.remove('hidden');
+      vlb.setAttribute('aria-hidden','false');
+      document.body.style.overflow = "hidden";
+      vlbVideo.currentTime = 0;
+      vlbVideo.play().catch(()=>{});
+    }
+    function closeLightbox(){
+      vlb.classList.add('hidden');
+      vlb.setAttribute('aria-hidden','true');
+      document.body.style.overflow = "";
+      vlbVideo.pause();
+      vlbVideo.src = "";
+    }
+    function show(delta){
+      current = (current + delta + files.length) % files.length;
+      vlbVideo.src = `Media/videos/${files[current]}`;
+      vlbVideo.currentTime = 0;
+      vlbVideo.play().catch(()=>{});
+    }
+    vlbClose.addEventListener('click', closeLightbox);
+    vlb.addEventListener('click', (e)=>{ if(e.target === vlb || e.target.classList.contains('bg-black/90')) closeLightbox(); });
+    vlbPrev.addEventListener('click', ()=>show(-1));
+    vlbNext.addEventListener('click', ()=>show(1));
+    window.addEventListener('keydown', (e)=>{
+      if (!vlb.classList.contains('hidden')) {
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') show(-1);
+        if (e.key === 'ArrowRight') show(1);
+      }
+    });
+
+    toggleBtn.addEventListener('click', ()=>{
+      expanded = !expanded;
+      render();
+    });
+
+    // Init
+    try {
+      files = await loadListTxt(); // expects Media/videos/List.txt, one filename per line (e.g., 01.mp4)
+      if (!files.length){
+        document.getElementById('videos').classList.add('hidden');
+        return;
+      }
+      render();
+    } catch (err) {
+      console.warn('[Videos] ' + err.message);
+      document.getElementById('videos').classList.add('hidden');
+    }
+  })();
 </script>
 </body>
 </html>
