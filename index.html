@@ -26,6 +26,16 @@
     .group:hover .thumb, .group.active .thumb{ filter:grayscale(30%); transform:scale(1.04); }
     #lightbox.hidden, #vidLightbox.hidden { display: none; }
 
+    /* Thumbnail video overlay (starts hidden, fades in on hover) */
+    .thumb-video {
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      object-fit:cover;
+      opacity:0; transition:opacity .2s ease;
+      pointer-events:none; /* let button receive hover/click */
+    }
+    .group:hover .thumb-video { opacity:1; }
+
     @media (prefers-reduced-motion: reduce) {
       #heroVideo, #fx { display: none !important; }
       * { animation: none !important; transition: none !important; }
@@ -529,16 +539,13 @@ function probeImage(url){
     lbImg.src = `Media/images/${entries[current].file}`;
   }
   function closeLightbox(){
-    // Reset image lightbox to initial state
     lb.classList.add('hidden');
     lb.removeAttribute('role');
     lb.removeAttribute('aria-modal');
     document.body.style.overflow = "";
-    // If fullscreen is active, exit
     if (document.fullscreenElement) {
       try { document.exitFullscreen(); } catch(_) {}
     }
-    // Unload the image to avoid stale content & free memory
     lbImg.src = "";
   }
   function show(delta){
@@ -584,7 +591,6 @@ function probeImage(url){
       if (Math.abs(dx) > 60 && Math.abs(dy) < 80){ show(dx > 0 ? -1 : 1); }
     });
 
-    // Fullscreen toggle for image
     lbFull.addEventListener('click', async ()=>{
       try {
         if (!document.fullscreenElement) { await lbImg.requestFullscreen(); }
@@ -598,7 +604,6 @@ function probeImage(url){
     render();
   });
 
-  // Init
   (async function init(){
     try {
       const files = await loadListTxt();
@@ -619,7 +624,7 @@ function probeImage(url){
   })();
 })();
 
-/* ================= VIDEOS (with proper unload/reset) ================= */
+/* ================= VIDEOS (hover preview over poster) ================= */
 (function(){
   const videoGrid = document.getElementById('videoGrid');
   const toggleBtn = document.getElementById('toggleVideos');
@@ -635,55 +640,44 @@ function probeImage(url){
     return text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   }
 
-  function card(src, idx) {
-  const btn = document.createElement('button');
-  btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
-  btn.setAttribute('data-vidindex', idx);
-  btn.setAttribute('aria-label', 'Play video ' + (idx+1));
-  btn.setAttribute('title', 'Play video');
+  function card(src, idx){
+    const btn = document.createElement('button');
+    btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
+    btn.setAttribute('data-vidindex', idx);
+    btn.setAttribute('aria-label', 'Play video ' + (idx+1));
+    btn.setAttribute('title', 'Play video');
 
-  const vid = document.createElement('video');
-  vid.className = "thumb h-full w-full object-cover opacity-90";
-  vid.muted = true;
-  vid.playsInline = true;
-  vid.preload = "auto"; // load enough data for smooth preview
-  vid.loop = true;      // keeps looping while hovered
+    // Poster image (always visible when not hovering)
+    const poster = document.createElement('img');
+    poster.src = src.replace(/\.\w+$/, '.jpg');
+    poster.alt = "Video thumbnail";
+    poster.loading = "lazy";
+    poster.decoding = "async";
+    poster.className = "thumb h-full w-full object-cover";
 
-  const source = document.createElement('source');
-  source.src = src;
-  source.type = "video/mp4";
-  vid.appendChild(source);
+    // Video overlay (hidden until hover)
+    const vid = document.createElement('video');
+    vid.className = "thumb-video opacity-0 group-hover:opacity-100";
+    vid.muted = true;
+    vid.playsInline = true;
+    vid.loop = true;
+    vid.preload = "auto"; // enough data for quick hover playback
 
-  // Autoplay policies allow muted+inline videos
-  btn.addEventListener('mouseenter', () => {
-    if (window.matchMedia('(hover: hover)').matches) {
-      vid.currentTime = 0;
-      vid.play().catch(() => {});
-    }
-  });
+    const source = document.createElement('source');
+    source.src = src;
+    source.type = "video/mp4";
+    vid.appendChild(source);
 
-  btn.addEventListener('mouseleave', () => {
-    vid.pause();
-    try { vid.currentTime = 0; } catch(_) {}
-  });
-
-  const badge = document.createElement('div');
-  badge.className = "absolute inset-0 grid place-items-center pointer-events-none";
-  const span = document.createElement('span');
-  span.className = "rounded-full border border-white/50 bg-black/40 backdrop-blur px-3 py-1 text-sm";
-  span.textContent = "▶ Play";
-  badge.appendChild(span);
-
-  const glow = document.createElement('div');
-  glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
-
-  btn.appendChild(vid);
-  btn.appendChild(badge);
-  btn.appendChild(glow);
-  btn.addEventListener('click', openLightbox);
-
-  return btn;
-}
+    // Hover preview handlers
+    btn.addEventListener('mouseenter', ()=>{
+      if (!window.matchMedia('(hover: hover)').matches) return;
+      try { vid.currentTime = 0; } catch(_) {}
+      vid.play().catch(()=>{});
+    });
+    btn.addEventListener('mouseleave', ()=>{
+      try { vid.pause(); } catch(_) {}
+      try { vid.currentTime = 0; } catch(_) {}
+    });
 
     const badge = document.createElement('div');
     badge.className = "absolute inset-0 grid place-items-center pointer-events-none";
@@ -695,7 +689,12 @@ function probeImage(url){
     const glow = document.createElement('div');
     glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
 
-    btn.appendChild(vid); btn.appendChild(badge); btn.appendChild(glow);
+    // Layering: poster (bottom) -> video (top) -> UI (badge/glow)
+    btn.appendChild(poster);
+    btn.appendChild(vid);
+    btn.appendChild(badge);
+    btn.appendChild(glow);
+
     btn.addEventListener('click', openLightbox);
     return btn;
   }
@@ -722,48 +721,42 @@ function probeImage(url){
     current = parseInt(btn.getAttribute('data-vidindex'), 10) || 0;
 
     const filename = files[current];
-    // Clear old sources completely
-    vlbVideo.pause();
+
+    // Fully reset previous sources
+    try { vlbVideo.pause(); } catch(_) {}
     vlbVideo.removeAttribute('src');
     vlbVideo.innerHTML = "";
     vlbVideo.removeAttribute('poster');
 
-    // Rebuild sources for the selected video
+    // Set poster and source
     vlbVideo.poster = `Media/videos/${filename.replace(/\.\w+$/, '.jpg')}`;
-  
     const mp4  = document.createElement('source'); mp4.src  = `Media/videos/${filename}`; mp4.type = "video/mp4";
     vlbVideo.appendChild(mp4);
-
-    // Force the element to evaluate the new sources
     vlbVideo.load();
 
-    // Show lightbox
+    // Show modal
     vlb.classList.remove('hidden');
     vlb.setAttribute('aria-hidden','false');
     vlb.setAttribute('role','dialog');
     vlb.setAttribute('aria-modal','true');
     document.body.style.overflow = "hidden";
 
-    // Try to play (muted autoplay may fail depending on browser)
+    // Try to play (muted autoplay may fail; user can click)
     vlbVideo.currentTime = 0;
-    vlbVideo.play().catch(()=>{ /* user will click play */ });
+    vlbVideo.play().catch(()=>{});
     vlbClose.focus();
   }
 
   function closeLightbox(){
-    // Hide first
     vlb.classList.add('hidden');
     vlb.setAttribute('aria-hidden','true');
     vlb.removeAttribute('role');
     vlb.removeAttribute('aria-modal');
     document.body.style.overflow = "";
-
-    // Fully unload the video element (FIX)
     try { vlbVideo.pause(); } catch(_) {}
     vlbVideo.removeAttribute('src');
     vlbVideo.removeAttribute('poster');
-    vlbVideo.innerHTML = ""; // remove <source> children
-    // Force a load() to commit the empty state (avoids caching first selection)
+    vlbVideo.innerHTML = "";
     try { vlbVideo.load(); } catch(_) {}
   }
 
@@ -826,20 +819,10 @@ function probeImage(url){
       if (d < bestDist){ bestDist = d; best = el; }
     }
     if (!best) return;
-
     best.classList.add('active');
 
-    if (container === videoGrid){
-      for (const el of items){
-        const v = el.querySelector('video');
-        if (!v) continue;
-        if (el === best){
-          v.play().catch(()=>{});
-        } else {
-          v.pause(); try { v.currentTime = 0; } catch(_) {}
-        }
-      }
-    }
+    // NOTE: removed auto-play-on-center for videos.
+    // Hover preview handles playback, keeping posters when not hovered.
   }
 
   window.refreshActiveCentered = function refreshActiveCentered(){
