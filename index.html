@@ -648,9 +648,6 @@ function probeImage(url){
     vid.preload = "metadata";
     vid.poster = src.replace(/\.\w+$/, '.jpg');
 
-    const webm = document.createElement('source'); webm.src = src.replace(/\.mp4$/i, '.webm'); webm.type = "video/webm";
-    const mp4  = document.createElement('source'); mp4.src  = src; mp4.type = "video/mp4";
-    vid.appendChild(webm); vid.appendChild(mp4);
 
     btn.addEventListener('mouseenter', ()=>{
       if (window.matchMedia('(hover: hover)').matches) { vid.play().catch(()=>{}); }
@@ -704,9 +701,9 @@ function probeImage(url){
 
     // Rebuild sources for the selected video
     vlbVideo.poster = `Media/videos/${filename.replace(/\.\w+$/, '.jpg')}`;
-    const webm = document.createElement('source'); webm.src = `Media/videos/${filename.replace(/\.mp4$/i, '.webm')}`; webm.type = "video/webm";
+  
     const mp4  = document.createElement('source'); mp4.src  = `Media/videos/${filename}`; mp4.type = "video/mp4";
-    vlbVideo.appendChild(webm); vlbVideo.appendChild(mp4);
+    vlbVideo.appendChild(mp4);
 
     // Force the element to evaluate the new sources
     vlbVideo.load();
