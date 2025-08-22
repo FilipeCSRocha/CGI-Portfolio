@@ -635,26 +635,55 @@ function probeImage(url){
     return text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   }
 
-  function card(src, idx){
-    const btn = document.createElement('button');
-    btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
-    btn.setAttribute('data-vidindex', idx);
-    btn.setAttribute('aria-label', 'Play video ' + (idx+1));
-    btn.setAttribute('title', 'Play video');
+  function card(src, idx) {
+  const btn = document.createElement('button');
+  btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
+  btn.setAttribute('data-vidindex', idx);
+  btn.setAttribute('aria-label', 'Play video ' + (idx+1));
+  btn.setAttribute('title', 'Play video');
 
-    const vid = document.createElement('video');
-    vid.className = "thumb h-full w-full object-cover opacity-90";
-    vid.muted = true; vid.playsInline = true;
-    vid.preload = "metadata";
-    vid.poster = src.replace(/\.\w+$/, '.jpg');
+  const vid = document.createElement('video');
+  vid.className = "thumb h-full w-full object-cover opacity-90";
+  vid.muted = true;
+  vid.playsInline = true;
+  vid.preload = "auto"; // load enough data for smooth preview
+  vid.loop = true;      // keeps looping while hovered
 
+  const source = document.createElement('source');
+  source.src = src;
+  source.type = "video/mp4";
+  vid.appendChild(source);
 
-    btn.addEventListener('mouseenter', ()=>{
-      if (window.matchMedia('(hover: hover)').matches) { vid.play().catch(()=>{}); }
-    });
-    btn.addEventListener('mouseleave', ()=>{
-      vid.pause(); try { vid.currentTime = 0; } catch(_) {}
-    });
+  // Autoplay policies allow muted+inline videos
+  btn.addEventListener('mouseenter', () => {
+    if (window.matchMedia('(hover: hover)').matches) {
+      vid.currentTime = 0;
+      vid.play().catch(() => {});
+    }
+  });
+
+  btn.addEventListener('mouseleave', () => {
+    vid.pause();
+    try { vid.currentTime = 0; } catch(_) {}
+  });
+
+  const badge = document.createElement('div');
+  badge.className = "absolute inset-0 grid place-items-center pointer-events-none";
+  const span = document.createElement('span');
+  span.className = "rounded-full border border-white/50 bg-black/40 backdrop-blur px-3 py-1 text-sm";
+  span.textContent = "▶ Play";
+  badge.appendChild(span);
+
+  const glow = document.createElement('div');
+  glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
+
+  btn.appendChild(vid);
+  btn.appendChild(badge);
+  btn.appendChild(glow);
+  btn.addEventListener('click', openLightbox);
+
+  return btn;
+}
 
     const badge = document.createElement('div');
     badge.className = "absolute inset-0 grid place-items-center pointer-events-none";
