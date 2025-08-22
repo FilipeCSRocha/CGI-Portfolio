@@ -26,15 +26,20 @@
     .group:hover .thumb, .group.active .thumb{ filter:grayscale(30%); transform:scale(1.04); }
     #lightbox.hidden, #vidLightbox.hidden { display: none; }
 
-    /* Thumbnail video overlay (starts hidden, fades in on hover) */
+    /* Video overlay (hidden by default, shows on hover) */
     .thumb-video {
       position:absolute; inset:0;
       width:100%; height:100%;
       object-fit:cover;
       opacity:0; transition:opacity .2s ease;
-      pointer-events:none; /* let button receive hover/click */
+      pointer-events:none; /* let the button receive hover/click */
     }
     .group:hover .thumb-video { opacity:1; }
+
+    /* On touch devices (no hover), show video for the centered .active card */
+    @media (hover: none) {
+      .active .thumb-video { opacity:1; }
+    }
 
     @media (prefers-reduced-motion: reduce) {
       #heroVideo, #fx { display: none !important; }
@@ -535,17 +540,13 @@ function probeImage(url){
     setImageSrc();
     lbClose.focus();
   }
-  function setImageSrc(){
-    lbImg.src = `Media/images/${entries[current].file}`;
-  }
+  function setImageSrc(){ lbImg.src = `Media/images/${entries[current].file}`; }
   function closeLightbox(){
     lb.classList.add('hidden');
     lb.removeAttribute('role');
     lb.removeAttribute('aria-modal');
     document.body.style.overflow = "";
-    if (document.fullscreenElement) {
-      try { document.exitFullscreen(); } catch(_) {}
-    }
+    if (document.fullscreenElement) { try { document.exitFullscreen(); } catch(_) {} }
     lbImg.src = "";
   }
   function show(delta){
@@ -624,7 +625,7 @@ function probeImage(url){
   })();
 })();
 
-/* ================= VIDEOS (hover preview over poster) ================= */
+/* ================= VIDEOS (hover preview + mobile centered autoplay) ================= */
 (function(){
   const videoGrid = document.getElementById('videoGrid');
   const toggleBtn = document.getElementById('toggleVideos');
@@ -647,7 +648,7 @@ function probeImage(url){
     btn.setAttribute('aria-label', 'Play video ' + (idx+1));
     btn.setAttribute('title', 'Play video');
 
-    // Poster image (always visible when not hovering)
+    // Poster image (default display)
     const poster = document.createElement('img');
     poster.src = src.replace(/\.\w+$/, '.jpg');
     poster.alt = "Video thumbnail";
@@ -655,26 +656,27 @@ function probeImage(url){
     poster.decoding = "async";
     poster.className = "thumb h-full w-full object-cover";
 
-    // Video overlay (hidden until hover)
+    // Video overlay (hidden until hover or 'active' on touch)
     const vid = document.createElement('video');
-    vid.className = "thumb-video opacity-0 group-hover:opacity-100";
+    vid.className = "thumb-video";
     vid.muted = true;
     vid.playsInline = true;
     vid.loop = true;
-    vid.preload = "auto"; // enough data for quick hover playback
+    vid.preload = "auto";
 
     const source = document.createElement('source');
     source.src = src;
     source.type = "video/mp4";
     vid.appendChild(source);
 
-    // Hover preview handlers
+    // Hover preview (desktop)
     btn.addEventListener('mouseenter', ()=>{
       if (!window.matchMedia('(hover: hover)').matches) return;
       try { vid.currentTime = 0; } catch(_) {}
       vid.play().catch(()=>{});
     });
     btn.addEventListener('mouseleave', ()=>{
+      if (!window.matchMedia('(hover: hover)').matches) return;
       try { vid.pause(); } catch(_) {}
       try { vid.currentTime = 0; } catch(_) {}
     });
@@ -689,7 +691,6 @@ function probeImage(url){
     const glow = document.createElement('div');
     glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
 
-    // Layering: poster (bottom) -> video (top) -> UI (badge/glow)
     btn.appendChild(poster);
     btn.appendChild(vid);
     btn.appendChild(badge);
@@ -721,27 +722,22 @@ function probeImage(url){
     current = parseInt(btn.getAttribute('data-vidindex'), 10) || 0;
 
     const filename = files[current];
-
-    // Fully reset previous sources
     try { vlbVideo.pause(); } catch(_) {}
     vlbVideo.removeAttribute('src');
     vlbVideo.innerHTML = "";
     vlbVideo.removeAttribute('poster');
 
-    // Set poster and source
     vlbVideo.poster = `Media/videos/${filename.replace(/\.\w+$/, '.jpg')}`;
     const mp4  = document.createElement('source'); mp4.src  = `Media/videos/${filename}`; mp4.type = "video/mp4";
     vlbVideo.appendChild(mp4);
     vlbVideo.load();
 
-    // Show modal
     vlb.classList.remove('hidden');
     vlb.setAttribute('aria-hidden','false');
     vlb.setAttribute('role','dialog');
     vlb.setAttribute('aria-modal','true');
     document.body.style.overflow = "hidden";
 
-    // Try to play (muted autoplay may fail; user can click)
     vlbVideo.currentTime = 0;
     vlbVideo.play().catch(()=>{});
     vlbClose.focus();
@@ -800,8 +796,6 @@ function probeImage(url){
 
   let ticking = false;
 
-  function isOneColumn(){ return window.matchMedia('(max-width: 639px)').matches; }
-
   function setActive(container){
     if (!container) return;
     const items = Array.from(container.children);
@@ -821,34 +815,71 @@ function probeImage(url){
     if (!best) return;
     best.classList.add('active');
 
-    // NOTE: removed auto-play-on-center for videos.
-    // Hover preview handles playback, keeping posters when not hovered.
+    // Playback policy:
+    const isHoverCapable = window.matchMedia('(hover: hover)').matches;
+
+    if (container === videoGrid){
+      if (!isHoverCapable) {
+        // Touch devices: autoplay active item, pause others
+        for (const el of items){
+          const v = el.querySelector('video');
+          if (!v) continue;
+          if (el === best){
+            try { v.currentTime = 0; } catch(_) {}
+            v.play().catch(()=>{});
+          } else {
+            try { v.pause(); } catch(_) {}
+            try { v.currentTime = 0; } catch(_) {}
+          }
+        }
+      } else {
+        // Hover devices: rely on hover handlers only; ensure all are paused/reset
+        for (const el of items){
+          const v = el.querySelector('video');
+          if (!v) continue;
+          try { v.pause(); } catch(_) {}
+          try { v.currentTime = 0; } catch(_) {}
+        }
+      }
+    }
   }
 
-  window.refreshActiveCentered = function refreshActiveCentered(){
-    if (!isOneColumn()){
-      [gallery, videoGrid].forEach(container=>{
-        if (!container) return;
-        const items = Array.from(container.children);
-        items.forEach(el => {
+  function refresh(){
+    const isHoverCapable = window.matchMedia('(hover: hover)').matches;
+    const oneColumn = window.matchMedia('(max-width: 639px)').matches;
+
+    // Always compute for gallery (visual effect)
+    if (oneColumn) setActive(gallery);
+    else {
+      // clear gallery active on multi-column
+      if (gallery){
+        Array.from(gallery.children).forEach(el=>el.classList.remove('active'));
+      }
+    }
+
+    // For videos:
+    if (!isHoverCapable) {
+      // Touch devices: always keep one active (even multi-column / landscape)
+      setActive(videoGrid);
+    } else {
+      // Hover devices: only mark active in one-column (for styling), no autoplay
+      if (oneColumn) setActive(videoGrid);
+      else if (videoGrid){
+        Array.from(videoGrid.children).forEach(el=>{
           el.classList.remove('active');
           const v = el.querySelector('video');
           if (v){ v.pause(); try { v.currentTime = 0; } catch(_) {} }
         });
-      });
-      return;
+      }
     }
-    setActive(gallery);
-    setActive(videoGrid);
-  };
+  }
+
+  window.refreshActiveCentered = refresh;
 
   function onScrollOrResize(){
     if (ticking) return;
     ticking = true;
-    requestAnimationFrame(()=>{
-      window.refreshActiveCentered();
-      ticking = false;
-    });
+    requestAnimationFrame(()=>{ refresh(); ticking = false; });
   }
 
   window.addEventListener('scroll', onScrollOrResize, { passive:true });
