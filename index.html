@@ -263,6 +263,7 @@ document.getElementById('year').textContent = new Date().getFullYear();
   function onLeave(){ mouse.active = false; }
   function onClick(e){
     var cx = e.clientX, cy = e.clientY;
+    var CLICK_IMPULSE = 1200;
     state.scatter = Math.min(1.5, state.scatter + 1.0);
     for (var i=0; i<pts.length; i++){
       var p = pts[i];
@@ -288,8 +289,6 @@ document.getElementById('year').textContent = new Date().getFullYear();
   var last = performance.now();
   function loop(now){
     var dt = Math.min(0.05, (now - last) / 1000); last = now;
-    var cw = Math.max(1, Math.floor(window.innerWidth));
-    var ch = Math.max(1, Math.floor(window.innerHeight));
 
     var kAnchor = 12;
     var tx = mouse.active ? mouse.x : anchor.x;
@@ -299,12 +298,15 @@ document.getElementById('year').textContent = new Date().getFullYear();
 
     if (state.scatter > 0) state.scatter = Math.max(0, state.scatter - 1.2*dt);
 
+    var cw = Math.max(1, Math.floor(window.innerWidth));
+    var ch = Math.max(1, Math.floor(window.innerHeight));
     ctx.clearRect(0, 0, cw, ch);
 
     var fade = getFade();
     ctx.save(); ctx.globalAlpha = fade;
 
     // Grid
+    var GRID_ALPHA = 0.055, GRID_SPACING = 96;
     ctx.save(); ctx.globalAlpha *= GRID_ALPHA; ctx.lineWidth = 1; ctx.strokeStyle = '#7fd0ff';
     var ox = ((anchor.x/cw)-0.5)*8, oy = ((anchor.y/ch)-0.5)*8;
     for (var x = (ox % GRID_SPACING) - GRID_SPACING; x < cw + GRID_SPACING; x += GRID_SPACING){
@@ -316,11 +318,12 @@ document.getElementById('year').textContent = new Date().getFullYear();
     ctx.restore();
 
     // Update cluster
+    var DAMPING = 0.88, STIFFNESS = 15.0, NOISE = 180, SWIRL = 2, BASE_RADIUS = 220, LINK_DIST = 190, PARTICLE_RADIUS = 6;
     var damping = Math.pow(DAMPING, dt*60);
     for (var i=0; i<pts.length; i++){
       var p = pts[i];
-      p.homeA += p.swirl * 0.3 * dt;
-      var targetR = p.homeR * (1 + state.scatter*1.4);
+      p.homeA += SWIRL * 0.3 * dt;
+      var targetR = BASE_RADIUS * (1 + state.scatter*1.4);
       var px = anchor.x + Math.cos(p.homeA) * targetR;
       var py = anchor.y + Math.sin(p.homeA) * targetR;
       var ax = (px - p.x) * STIFFNESS + (Math.random()-0.5) * NOISE * dt;
@@ -333,6 +336,7 @@ document.getElementById('year').textContent = new Date().getFullYear();
     // Draw particles + proximity lines
     for (var i=0; i<pts.length; i++){
       var p = pts[i];
+      var PARTICLE_RADIUS = 6, LINK_DIST = 190;
       ctx.drawImage(glow, (p.x - PARTICLE_RADIUS), (p.y - PARTICLE_RADIUS), PARTICLE_RADIUS*2, PARTICLE_RADIUS*2);
       for (var j=i+1; j<pts.length; j++){
         var q = pts[j];
@@ -351,13 +355,25 @@ document.getElementById('year').textContent = new Date().getFullYear();
   }
 
   function init(){
+    function size(){
+      var cssW = Math.max(1, Math.floor(window.innerWidth));
+      var cssH = Math.max(1, Math.floor(window.innerHeight));
+      canvas.width  = cssW * DPR; canvas.height = cssH * DPR;
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+    }
+    function spawn(){
+      var cw = Math.max(1, Math.floor(window.innerWidth));
+      var ch = Math.max(1, Math.floor(window.innerHeight));
+      pts.length = 0;
+      var COUNT = 12;
+      for (var i=0; i<COUNT; i++){
+        var sx = Math.random()*cw, sy = Math.random()*ch;
+        pts.push({ x: sx, y: sy, vx: 0, vy: 0, homeA: Math.random()*Math.PI*2, homeR: 1 });
+      }
+    }
+
     window.addEventListener('resize', size, { passive:true });
     size(); spawn(); requestAnimationFrame(loop);
-    window.addEventListener('mousemove', onMove, { passive:true });
-    window.addEventListener('mouseleave', onLeave, { passive:true });
-    window.addEventListener('click', onClick);
-    var vid = document.getElementById('heroVideo');
-    if (vid){ var p = vid.play(); if (p && p.catch) p.catch(function(){ vid.remove(); }); }
   }
   init();
 })();
@@ -529,16 +545,13 @@ function probeImage(url){
     lbImg.src = `Media/images/${entries[current].file}`;
   }
   function closeLightbox(){
-    // Reset image lightbox to initial state
     lb.classList.add('hidden');
     lb.removeAttribute('role');
     lb.removeAttribute('aria-modal');
     document.body.style.overflow = "";
-    // If fullscreen is active, exit
     if (document.fullscreenElement) {
       try { document.exitFullscreen(); } catch(_) {}
     }
-    // Unload the image to avoid stale content & free memory
     lbImg.src = "";
   }
   function show(delta){
@@ -584,7 +597,6 @@ function probeImage(url){
       if (Math.abs(dx) > 60 && Math.abs(dy) < 80){ show(dx > 0 ? -1 : 1); }
     });
 
-    // Fullscreen toggle for image
     lbFull.addEventListener('click', async ()=>{
       try {
         if (!document.fullscreenElement) { await lbImg.requestFullscreen(); }
@@ -598,7 +610,6 @@ function probeImage(url){
     render();
   });
 
-  // Init
   (async function init(){
     try {
       const files = await loadListTxt();
@@ -619,13 +630,14 @@ function probeImage(url){
   })();
 })();
 
-/* ================= VIDEOS (with proper unload/reset) ================= */
+/* ================= VIDEOS (manifest-driven with safe probing) ================= */
 (function(){
   const videoGrid = document.getElementById('videoGrid');
   const toggleBtn = document.getElementById('toggleVideos');
   const PAGE = 6;
 
-  let files = [];
+  /** Video entry built from List.txt with probed optional assets */
+  let entries = []; // [{ idx, base, mp4, webm, poster }]
   let expanded = false;
 
   async function loadListTxt() {
@@ -635,7 +647,39 @@ function probeImage(url){
     return text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   }
 
-  function card(src, idx){
+  /** Build video entries, probing only for files that may exist */
+  async function buildVideoEntries(files){
+    const folder = "Media/videos/";
+    const results = [];
+    for (let i=0;i<files.length;i++){
+      const name = files[i];
+      const lower = name.toLowerCase();
+      const base = name.replace(/\.[^.]+$/, "");
+      let mp4 = null, webm = null, poster = null;
+
+      // If the line itself names an mp4/webm, keep it
+      if (lower.endsWith(".mp4")) mp4 = folder + name;
+      if (lower.endsWith(".webm")) webm = folder + name;
+
+      // Try alternate encodes only if not already provided
+      if (!webm && await headExists(folder + base + ".webm")) webm = folder + base + ".webm";
+      if (!mp4 && await headExists(folder + base + ".mp4")) mp4 = folder + base + ".mp4";
+
+      // Optional posters (probe common extensions)
+      const posterCands = [".jpg",".png",".JPG",".PNG"].map(ext => folder + base + ext);
+      for (const p of posterCands){ if (await headExists(p)) { poster = p; break; } }
+
+      // Only add entries that have at least one playable source
+      if (mp4 || webm){
+        results.push({ idx:i, base, mp4, webm, poster });
+      } else {
+        console.warn(`[Videos] Skipping "${name}" — no playable source found.`);
+      }
+    }
+    return results;
+  }
+
+  function card(entry, idx){
     const btn = document.createElement('button');
     btn.className = "group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-white/5 focus:outline-none";
     btn.setAttribute('data-vidindex', idx);
@@ -646,11 +690,11 @@ function probeImage(url){
     vid.className = "thumb h-full w-full object-cover opacity-90";
     vid.muted = true; vid.playsInline = true;
     vid.preload = "metadata";
-    vid.poster = src.replace(/\.\w+$/, '.jpg');
+    if (entry.poster) vid.poster = entry.poster;
 
-    const webm = document.createElement('source'); webm.src = src.replace(/\.mp4$/i, '.webm'); webm.type = "video/webm";
-    const mp4  = document.createElement('source'); mp4.src  = src; mp4.type = "video/mp4";
-    vid.appendChild(webm); vid.appendChild(mp4);
+    // Only append sources that exist
+    if (entry.webm) { const s = document.createElement('source'); s.src = entry.webm; s.type = "video/webm"; vid.appendChild(s); }
+    if (entry.mp4)  { const s = document.createElement('source'); s.src = entry.mp4;  s.type = "video/mp4";  vid.appendChild(s); }
 
     btn.addEventListener('mouseenter', ()=>{
       if (window.matchMedia('(hover: hover)').matches) { vid.play().catch(()=>{}); }
@@ -676,12 +720,12 @@ function probeImage(url){
 
   function render(){
     videoGrid.innerHTML = "";
-    const toShow = expanded ? files.length : Math.min(PAGE, files.length);
+    const toShow = expanded ? entries.length : Math.min(PAGE, entries.length);
     for (let i=0; i<toShow; i++){
-      videoGrid.appendChild(card(`Media/videos/${files[i]}`, i));
+      videoGrid.appendChild(card(entries[i], i));
     }
     toggleBtn.textContent = expanded ? "Show less" : "Show more";
-    document.getElementById('videoActions').classList.toggle('hidden', files.length <= PAGE);
+    document.getElementById('videoActions').classList.toggle('hidden', entries.length <= PAGE);
     refreshActiveCentered();
   }
 
@@ -695,18 +739,17 @@ function probeImage(url){
     const btn = e.currentTarget;
     current = parseInt(btn.getAttribute('data-vidindex'), 10) || 0;
 
-    const filename = files[current];
+    const entry = entries[current];
     // Clear old sources completely
     vlbVideo.pause();
     vlbVideo.removeAttribute('src');
     vlbVideo.innerHTML = "";
     vlbVideo.removeAttribute('poster');
 
-    // Rebuild sources for the selected video
-    vlbVideo.poster = `Media/videos/${filename.replace(/\.\w+$/, '.jpg')}`;
-    const webm = document.createElement('source'); webm.src = `Media/videos/${filename.replace(/\.mp4$/i, '.webm')}`; webm.type = "video/webm";
-    const mp4  = document.createElement('source'); mp4.src  = `Media/videos/${filename}`; mp4.type = "video/mp4";
-    vlbVideo.appendChild(webm); vlbVideo.appendChild(mp4);
+    // Rebuild sources for the selected entry
+    if (entry.poster) vlbVideo.poster = entry.poster;
+    if (entry.webm) { const s = document.createElement('source'); s.src = entry.webm; s.type = "video/webm"; vlbVideo.appendChild(s); }
+    if (entry.mp4)  { const s = document.createElement('source'); s.src = entry.mp4;  s.type = "video/mp4";  vlbVideo.appendChild(s); }
 
     // Force the element to evaluate the new sources
     vlbVideo.load();
@@ -718,26 +761,22 @@ function probeImage(url){
     vlb.setAttribute('aria-modal','true');
     document.body.style.overflow = "hidden";
 
-    // Try to play (muted autoplay may fail depending on browser)
     vlbVideo.currentTime = 0;
-    vlbVideo.play().catch(()=>{ /* user will click play */ });
+    vlbVideo.play().catch(()=>{ /* user gesture required on some browsers */ });
     vlbClose.focus();
   }
 
   function closeLightbox(){
-    // Hide first
     vlb.classList.add('hidden');
     vlb.setAttribute('aria-hidden','true');
     vlb.removeAttribute('role');
     vlb.removeAttribute('aria-modal');
     document.body.style.overflow = "";
 
-    // Fully unload the video element (FIX)
     try { vlbVideo.pause(); } catch(_) {}
     vlbVideo.removeAttribute('src');
     vlbVideo.removeAttribute('poster');
     vlbVideo.innerHTML = ""; // remove <source> children
-    // Force a load() to commit the empty state (avoids caching first selection)
     try { vlbVideo.load(); } catch(_) {}
   }
 
@@ -757,10 +796,17 @@ function probeImage(url){
   // Init
   (async function init(){
     try {
-      files = await loadListTxt(); // expects Media/videos/List.txt
+      const files = await loadListTxt(); // expects Media/videos/List.txt
       if (!files.length){
         document.getElementById('videoGrid').innerHTML =
           '<div class="rounded-xl border border-white/10 bg-white/5 p-6 text-white/70">Videos coming soon.</div>';
+        document.getElementById('videoActions').classList.add('hidden');
+        return;
+      }
+      entries = await buildVideoEntries(files);
+      if (!entries.length){
+        document.getElementById('videoGrid').innerHTML =
+          '<div class="rounded-xl border border-white/10 bg-white/5 p-6 text-white/70">No playable videos found.</div>';
         document.getElementById('videoActions').classList.add('hidden');
         return;
       }
@@ -848,23 +894,7 @@ function probeImage(url){
 })();
 
 /* ================= Performance niceties ================= */
-// Pause hero when it's out of view
-(function(){
-  const vid = document.getElementById('heroVideo');
-  if (!vid) return;
-  const io = new IntersectionObserver(entries=>{
-    for (const e of entries){
-      if (e.isIntersecting) { vid.play().catch(()=>{}); }
-      else { vid.pause(); }
-    }
-  }, { threshold: 0.15 });
-  io.observe(vid);
-})();
-
-// Pause previews when the tab is hidden
 document.addEventListener('visibilitychange', ()=>{
-  const hv = document.getElementById('heroVideo');
-  if (hv) (document.hidden ? hv.pause() : hv.play().catch(()=>{}));
   document.querySelectorAll('#videoGrid video').forEach(v=>{
     if (document.hidden) v.pause();
   });
