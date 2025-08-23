@@ -181,7 +181,7 @@
           <h3 class="text-xl font-semibold">Let’s work together</h3>
         </div>
         <div class="flex justify-start md:justify-end gap-3">
-          <a class="btn" href="mailto:filipecsrocha@gmail.com" rel="noopener">Email</a>
+          <a class="btn" href="mailto:hello@example.com" rel="noopener">Email</a>
           <a class="btn" href="https://www.linkedin.com/in/filipecsrocha/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
          
         </div>
@@ -680,19 +680,14 @@ function probeImage(url){
       try { vid.currentTime = 0; } catch(_) {}
     });
 
-    const badge = document.createElement('div');
-    badge.className = "absolute inset-0 grid place-items-center pointer-events-none";
-    const span = document.createElement('span');
-    span.className = "rounded-full border border-white/50 bg-black/40 backdrop-blur px-3 py-1 text-sm";
-    span.textContent = "▶ Play";
-    badge.appendChild(span);
+   
 
     const glow = document.createElement('div');
     glow.className = "pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-tr from-cyan-300/10 via-transparent to-transparent";
 
     btn.appendChild(poster);
     btn.appendChild(vid);
-    btn.appendChild(badge);
+   
     btn.appendChild(glow);
 
     btn.addEventListener('click', openLightbox);
