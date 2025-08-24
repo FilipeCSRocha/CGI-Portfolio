@@ -29,11 +29,11 @@
     #lightbox.hidden, #vidLightbox.hidden { display:none; }
 
     /* Blur-up preview */
-    .preview { filter: blur(18px); transform: scale(1.02); }
-    .preview.is-ready { filter:none; transform:none; transition: filter .2s ease, transform .2s ease; }
+    .preview { filter: blur(10px); transform: scale(1.02); }
+    .preview.is-ready { filter:none; transform:none; transition: filter .1s ease, transform .1s ease; }
 
     /* Video overlay for hover preview */
-    .thumb-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .2s ease; pointer-events:none; }
+    .thumb-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .1s ease; pointer-events:none; }
     .group:hover .thumb-video { opacity:1; }
     @media (hover: none) { .active .thumb-video { opacity:1; } }
 
@@ -113,8 +113,7 @@
               </div>
             </div>
           </div>
-          <div id="toolIcons" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3"></div>
-          <p id="toolHint" class="mt-3 text-xs text-white/50 hidden">Place icons as <code>Media/icons/1.png</code>, <code>2.png</code>, …</p>
+          <!-- Removed separate toolIcons grid; icons are injected above each label inside the spans -->
         </div>
       </div>
     </div>
@@ -336,49 +335,62 @@ function baseOf(name){ return name.replace(/\.[^.]+$/, ""); }
   const el = document.getElementById('profileImg'); if (el) { el.decoding="async"; el.loading="lazy"; el.src = src; }
 })();
 
-/* ================= TOOLS ICONS (icon above label) ================= */
+/* ================= TOOLS (icons above existing labels) ================= */
 (function(){
-  const ICON_MAX = 12;
+  // map software names -> icon numbers (from your list)
+  const NAME_TO_NUM = new Map([
+    ['3ds max', 1], ['3dsmax', 1],
+    ['v-ray', 2], ['v ray', 2], ['vray', 2],
+    ['corona', 3],
+    ['vantage', 4], ['chaos vantage', 4],
+    ['anima', 5], ['chaos anima', 5],
+    ['forest pack', 6],
+    ['railclone', 7],
+    ['photoshop', 8],
+    ['after effects', 9], ['aftereffects', 9],
+    ['premiere', 10], ['premiere pro', 10], ['adobe premiere', 10],
+    ['davinci resolve', 11], ['da vinci resolve', 11], ['davinciresolve', 11],
+    ['unreal engine', 12], ['unrealengine', 12]
+  ]);
   const ICON_EXTS = ["png","PNG"];
-  const LABELS = {
-    1: "3ds Max", 2: "V-Ray", 3: "Corona", 4: "Vantage", 5: "Anima", 6: "Forest Pack",
-    7: "RailClone", 8: "Photoshop", 9: "After Effects", 10: "Premiere Pro", 11: "DaVinci Resolve", 12: "Unreal Engine"
-  };
-  const toolIconsEl = document.getElementById('toolIcons');
 
-  async function findIcon(n){
-    for (const ext of ICON_EXTS){ const p = `Media/icons/${n}.${ext}`; if (await headExists(p)) return p; }
+  function norm(s){ return (s||'').toLowerCase().trim().replace(/\s+/g,' ').replace(/[^\w ]/g,''); }
+
+  async function findIcon(num){
+    for (const ext of ICON_EXTS){
+      const p = `Media/icons/${num}.${ext}`;
+      if (await headExists(p)) return p;
+    }
     return null;
   }
 
-  (async function load(){
-    let any=false, missing=0;
-    for (let n=1;n<=ICON_MAX;n++){
-      const src = await findIcon(n);
-      const label = LABELS[n] || ("Tool " + n);
-      if (src){
-        any=true;
-        const wrap = document.createElement('div');
-        wrap.className = "group flex flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10 transition text-center";
+  (async function enhance(){
+    // target all the tool "pills" (the existing spans)
+    const pills = Array.from(document.querySelectorAll('#about .flex.flex-wrap.gap-2 > span'));
+    for (const pill of pills){
+      if (pill.querySelector('img')) continue; // idempotent
+      const labelRaw = pill.textContent || '';
+      const key = norm(labelRaw);
+      let num = NAME_TO_NUM.get(key);
+      if (!num && key.startsWith('chaos ')) num = NAME_TO_NUM.get(key.replace(/^chaos /,''));
+      if (!num && key.endsWith(' pro')) num = NAME_TO_NUM.get(key.replace(/ pro$/,''));
 
-        const img = document.createElement('img');
-        img.src = src; img.alt = label; img.className = "h-10 w-10 object-contain"; img.decoding="async"; img.loading="lazy";
+      if (!num) continue;
+      const src = await findIcon(num);
+      if (!src) continue;
 
-        const caption = document.createElement('div');
-        caption.className = "text-xs text-white/85";
-        caption.textContent = label;
+      // Make the pill stack icon above text
+      pill.classList.add('inline-flex','flex-col','items-center','gap-1','pt-2','text-center');
 
-        wrap.appendChild(img);
-        wrap.appendChild(caption);
-        toolIconsEl.appendChild(wrap);
-      } else {
-        missing++;
-      }
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = labelRaw.trim();
+      img.className = 'h-6 w-6 object-contain pointer-events-none select-none';
+      img.decoding = 'async';
+      img.loading = 'lazy';
+
+      pill.prepend(img);
     }
-
-    const hint = document.getElementById('toolHint');
-    if (!any) hint.classList.remove('hidden');
-    else if (missing>0){ hint.textContent = `Tip: ${missing} icon${missing>1?'s':''} missing. Place files like Media/icons/1.png, 2.png, …`; hint.classList.remove('hidden'); }
   })();
 })();
 
